@@ -1,75 +1,85 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import Banners from "@/components/home/Banners";
+import Search from "@/components/home/Search";
+import ParallaxScrollView from "@/components/ParallaxScrollView";
+import HorizontalProductListSection from "@/components/ui/HorizontalProductListSection";
+import ScrollableProductSection from "@/components/ui/ScrollableProductSection";
+import { Image } from "expo-image";
+import { Text, View } from "react-native";
 
-import { HelloWave } from '@/components/HelloWave';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
+export default function Home() {
+  const products = [
+    {
+      name: "Affordable quality gown",
+      price: "2,000,000",
+      image: "../../assets/images/image.png",
+      description:
+        "Elegant evening gown made with premium fabric, perfect for special occasions. Elegant evening gown made with premium fabric, perfect for special occasions.Elegant evening gown made with premium fabric, perfect for special occasions.Elegant evening gown made with premium fabric, perfect for special occasions.",
+    },
+    {
+      name: "Affordable quality gown",
+      price: "2,000,000",
+      image: "../../assets/images/image1.png",
+      description:
+        "Stylish modern gown with a flattering fit, designed for comfort and class.",
+    },
+    {
+      name: "Affordable quality gown",
+      price: "2,000,000",
+      image: "../../assets/images/image2.png",
+      description:
+        "Lightweight gown with a timeless look, suitable for both casual and formal wear.",
+    },
+    {
+      name: "Affordable quality gown",
+      price: "2,000,000",
+      image: "../../assets/images/image1.png",
+      description:
+        "Classic gown with a chic silhouette, crafted for everyday elegance.",
+    },
+    {
+      name: "Affordable quality gown",
+      price: "2,000,000",
+      image: "../../assets/images/image2.png",
+      description:
+        "Graceful gown designed with fine details, ideal for weddings and parties.",
+    },
+  ];
 
-export default function HomeScreen() {
   return (
     <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
+      headerBackgroundColor={{ light: "#A1CEDC", dark: "#1D3D47" }}
+    >
+      <Search />
+      <Banners />
+      <View className="flex-row px-4 justify-between gap-2">
+        <View className="bg-secondary w-[100px] text-neutral-50 rounded-md p-3 items-center">
+          <Image
+            source={require("../../assets/icons/trust.png")}
+            style={{ width: 30, height: 30 }}
+            contentFit="contain"
+          />
+          <Text className="text-neutral-50 text-[0.865rem]">Trusted</Text>
+        </View>
+        <View className="bg-secondary w-[100px] text-neutral-50 rounded-md p-3 items-center">
+          <Image
+            source={require("../../assets/icons/shield.png")}
+            style={{ width: 30, height: 30 }}
+            contentFit="contain"
+          />
+          <Text className="text-neutral-50 text-[0.865rem]">Secure</Text>
+        </View>
+        <View className="bg-secondary w-[100px] text-neutral-50 rounded-md p-3 items-center">
+          <Image
+            source={require("../../assets/icons/reliability.png")}
+            style={{ width: 30, height: 30 }}
+            contentFit="contain"
+          />
+          <Text className="text-neutral-50 text-[0.865rem]">Reliable</Text>
+        </View>
+      </View>
+      <ScrollableProductSection title="Featured" products={products} />
+      <ScrollableProductSection title="Top Sellers" products={products} />
+      <HorizontalProductListSection title="Recent Added" products={products} />
     </ParallaxScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
-});
