@@ -1,32 +1,53 @@
 import { Image } from "expo-image";
 import { useNavigation } from "expo-router";
 import React from "react";
-import { Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
 
 interface AppBarProps {
   title: string;
 }
+
+const styles = StyleSheet.create({
+  container: {
+    marginTop: 8,
+  },
+  logoContainer: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  logo: {
+    width: 100,
+    height: 100,
+    alignSelf: "center",
+  },
+  title: {
+    fontWeight: "900",
+    fontSize: 40,
+    marginTop: 50,
+    textAlign: "center",
+  },
+});
+
 const AppBar = ({ title }: AppBarProps) => {
   const navigation = useNavigation();
 
   return (
-    <View>
+    <View style={styles.container}>
       <Icon
         name="chevron-left"
         size={16}
         color="#000"
         onPress={() => navigation.goBack()}
       />
-      <View className="justify-center items-center">
+      <View style={styles.logoContainer}>
         <Image
           source={require("../../assets/images/LOGO.png")}
-          style={{ width: 100, height: 100 }}
-          className="mx-auto"
+          style={styles.logo}
         />
       </View>
 
-      <Text className="font-[900] text-[2.5rem] mt-[50px]">{title}</Text>
+      <Text style={styles.title}>{title}</Text>
     </View>
   );
 };

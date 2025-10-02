@@ -4,7 +4,34 @@ import ParallaxScrollView from "@/components/ParallaxScrollView";
 import HorizontalProductListSection from "@/components/ui/HorizontalProductListSection";
 import ScrollableProductSection from "@/components/ui/ScrollableProductSection";
 import { Image } from "expo-image";
-import { Text, View } from "react-native";
+
+import { StyleSheet, Text, View } from "react-native";
+
+const styles = StyleSheet.create({
+  row: {
+    flexDirection: "row",
+    paddingHorizontal: 16,
+    justifyContent: "space-between",
+  },
+  infoBox: {
+    backgroundColor: "#0b4688", // secondary
+    width: 100,
+    borderRadius: 12,
+    padding: 12,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 8,
+  },
+  infoText: {
+    color: "#fafafa", // neutral-50
+    fontSize: 14,
+    marginTop: 4,
+  },
+
+  scrollSections: {
+    gap: 16,
+  },
+});
 
 export default function Home() {
   const products = [
@@ -51,35 +78,41 @@ export default function Home() {
     >
       <Search />
       <Banners />
-      <View className="flex-row px-4 justify-between gap-2">
-        <View className="bg-secondary w-[100px] text-neutral-50 rounded-md p-3 items-center">
+      <View style={styles.row}>
+        <View style={styles.infoBox}>
           <Image
             source={require("../../assets/icons/trust.png")}
             style={{ width: 30, height: 30 }}
             contentFit="contain"
           />
-          <Text className="text-neutral-50 text-[0.865rem]">Trusted</Text>
+          <Text style={styles.infoText}>Trusted</Text>
         </View>
-        <View className="bg-secondary w-[100px] text-neutral-50 rounded-md p-3 items-center">
+        <View style={styles.infoBox}>
           <Image
             source={require("../../assets/icons/shield.png")}
             style={{ width: 30, height: 30 }}
             contentFit="contain"
           />
-          <Text className="text-neutral-50 text-[0.865rem]">Secure</Text>
+          <Text style={styles.infoText}>Secure</Text>
         </View>
-        <View className="bg-secondary w-[100px] text-neutral-50 rounded-md p-3 items-center">
+        <View style={styles.infoBox}>
           <Image
             source={require("../../assets/icons/reliability.png")}
             style={{ width: 30, height: 30 }}
             contentFit="contain"
           />
-          <Text className="text-neutral-50 text-[0.865rem]">Reliable</Text>
+          <Text style={styles.infoText}>Reliable</Text>
         </View>
       </View>
-      <ScrollableProductSection title="Featured" products={products} />
-      <ScrollableProductSection title="Top Sellers" products={products} />
-      <HorizontalProductListSection title="Recent Added" products={products} />
+
+      <View style={styles.scrollSections}>
+        <ScrollableProductSection title="Featured" products={products} />
+        <ScrollableProductSection title="Top Sellers" products={products} />
+        <HorizontalProductListSection
+          title="Recent Added"
+          products={products}
+        />
+      </View>
     </ParallaxScrollView>
   );
 }

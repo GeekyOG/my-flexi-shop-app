@@ -3,28 +3,57 @@ import LoginForm from "@/components/auth/LoginForm";
 import ParallaxScrollView from "@/components/ParallaxScrollView";
 import { Link, router } from "expo-router";
 import React from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import {
+  Dimensions,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+
+const { height } = Dimensions.get("window");
+const styles = StyleSheet.create({
+  container: {
+    justifyContent: "space-between",
+    flex: 1,
+    height: height - 250,
+  },
+  inner: {
+    marginTop: 24,
+  },
+  link: {
+    marginTop: 8,
+  },
+  button: {
+    backgroundColor: "#0b4688", // secondary
+    padding: 16,
+    borderRadius: 16,
+    width: "100%",
+  },
+  buttonText: {
+    color: "#fafafa", // neutral-50
+    fontWeight: "900",
+    fontSize: 20,
+    textAlign: "center",
+  },
+});
 
 const Register = () => {
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: "#A1CEDC", dark: "#1D3D47" }}
     >
-      <View className="justify-between flex h-[calc(100vh-[250px])]">
+      <View style={styles.container}>
         <View>
           <AppBar title="Sign Up" />
-
-          <View className="mt-6">
+          <View style={styles.inner}>
             <LoginForm />
-            <Link href="/(auth)/register" className="mt-2">
-              {" "}
+            <Link href="/(auth)/register" style={styles.link}>
               <TouchableOpacity
-                className="bg-secondary p-4 rounded-xl w-full"
+                style={styles.button}
                 onPress={() => router.push("/(auth)/register")}
               >
-                <Text className="text-neutral-50 font-[900] text-xl text-center">
-                  Create Account
-                </Text>
+                <Text style={styles.buttonText}>Create Account</Text>
               </TouchableOpacity>
             </Link>
           </View>

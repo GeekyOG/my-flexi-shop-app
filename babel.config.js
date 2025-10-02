@@ -1,10 +1,20 @@
+// module.exports = function (api) {
+//   api.cache(true);
+//   return {
+//     presets: ["babel-preset-expo"],
+//     plugins: [
+//       "react-native-worklets/plugin",
+
+// require.resolve("expo-router/babel"),
+// "nativewind/babel",
+//     ],
+//   };
+// };
+
 module.exports = function (api) {
   api.cache(true);
   return {
-    presets: [
-      ["babel-preset-expo", { jsxImportSource: "nativewind" }],
-      "nativewind/babel",
-    ],
-    plugins: ["react-native-reanimated/plugin"],
+    presets: ["babel-preset-expo"],
+    plugins: ["react-native-worklets/plugin"],
   };
 };

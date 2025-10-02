@@ -2,7 +2,6 @@ import { Image } from "expo-image";
 import { router } from "expo-router";
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { Button, Modal, Portal } from "react-native-paper";
 
 interface ProductCardProps {
   product: {
@@ -21,68 +20,53 @@ const ProductCard = ({ product, itemWidth }: ProductCardProps) => {
   const hideModal = () => setVisible(false);
   return (
     <>
-      <Pressable style={{ width: itemWidth }} onPress={showModal}>
-        <View className="rounded-md overflow-hidden ">
+      <Pressable
+        style={{ width: itemWidth, position: "relative" }}
+        onPress={() => router.push("/product/9")}
+      >
+        <View style={styles.imageContainer}>
           <Image
             style={{ height: 150, width: "100%" }}
             contentFit="cover"
-            className=""
             source={require("../../assets/images/image.png")}
           />
         </View>
 
-        <Text className="text-[0.865rem] text-neutral-400">
-          {product.name.length > 20
-            ? product.name.substring(0, 20) + "..."
+        <Text style={styles.productName}>
+          {product.name.length > 15
+            ? product.name.substring(0, 15) + "..."
             : product.name}
         </Text>
-        <Text className="text-[1rem] text-neutral-700 font-[500]">
-          N {product.price}
-        </Text>
+
+        <Text style={styles.productPrice}>N {product.price}</Text>
       </Pressable>
 
-      <Portal>
-        <Modal
-          visible={visible}
-          onDismiss={hideModal}
-          contentContainerStyle={styles.modal}
-        >
-          <View className="pb-6">
-            <Text className="text-[1.5rem] text-center font-bold pb-3">
-              {product.name}
-            </Text>
+      {/* <View>
+        <View style={styles.modal}>
+          <View style={styles.modalPadding}>
+            <Text style={styles.modalTitle}>{product.name}</Text>
 
-            <View className="pb-5">
-              <Text className="text-[0.865rem] text-neutral-500">
-                {product.description}
-              </Text>
-              <Text className="font-[700] py-2 text-[1.25rem]">
-                N{product.price}
-              </Text>
+            <View style={styles.modalSection}>
+              <Text style={styles.modalDescription}>{product.description}</Text>
+              <Text style={styles.modalPrice}>N{product.price}</Text>
             </View>
 
-            <View className="flex- justify-between gap-3">
-              <Button
-                mode="contained"
-                onPress={hideModal}
-                buttonColor={"#DB3022"}
-              >
-                <Text className="text-neutral-50"> ADD TO CART</Text>
-              </Button>
-              <Button
-                mode="contained"
+            <View style={styles.modalActions}>
+              <Pressable onPress={hideModal}>
+                <Text style={styles.actionText}> ADD TO CART</Text>
+              </Pressable>
+              <Pressable
                 onPress={() => {
                   router.push("/product/9");
                   hideModal();
                 }}
-                buttonColor={"#ec762c"}
               >
-                <Text className="text-neutral-50"> VIEW DETAILS</Text>
-              </Button>
+                <Text style={styles.actionText}> VIEW DETAILS</Text>
+              </Pressable>
             </View>
           </View>
-        </Modal>
-      </Portal>
+        </View>
+      </View> */}
     </>
   );
 };
@@ -90,10 +74,21 @@ const ProductCard = ({ product, itemWidth }: ProductCardProps) => {
 export default ProductCard;
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    justifyContent: "center",
-    padding: 16,
+  imageContainer: {
+    borderRadius: 12,
+    overflow: "hidden",
+    position: "relative",
+  },
+  productName: {
+    fontSize: 14,
+    color: "#a3a3a3", // neutral-400
+    marginTop: 8,
+  },
+  productPrice: {
+    fontSize: 16,
+    color: "#404040", // neutral-700
+    fontWeight: "500",
+    marginBottom: 8,
   },
   modal: {
     backgroundColor: "white",
@@ -103,5 +98,34 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: -40,
     width: "100%",
+  },
+  modalPadding: {
+    paddingBottom: 24,
+  },
+  modalTitle: {
+    fontSize: 24,
+    textAlign: "center",
+    fontWeight: "bold",
+    paddingBottom: 12,
+  },
+  modalSection: {
+    paddingBottom: 20,
+  },
+  modalDescription: {
+    fontSize: 14,
+    color: "#737373", // neutral-500
+  },
+  modalPrice: {
+    fontWeight: "700",
+    paddingVertical: 8,
+    fontSize: 20,
+  },
+  modalActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  actionText: {
+    color: "#fafafa", // neutral-50
   },
 });

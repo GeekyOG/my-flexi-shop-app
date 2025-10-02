@@ -15,12 +15,12 @@ const ProductImages = () => {
       showsHorizontalScrollIndicator={true}
     >
       <Image
-        style={{ height: 200, width: width - 32 }}
+        style={{ height: 300, width: width - 32 }}
         contentFit="contain"
         source={require("../../assets/images/image.png")}
       />
       <Image
-        style={{ height: 200, width: width - 32 }}
+        style={{ height: 300, width: width - 32 }}
         contentFit="contain"
         source={require("../../assets/images/image1.png")}
       />

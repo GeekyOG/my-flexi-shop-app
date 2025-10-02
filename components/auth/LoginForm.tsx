@@ -1,7 +1,13 @@
 import { Link } from "expo-router";
 import { Formik } from "formik";
 import React from "react";
-import { Text, TextInput, TouchableOpacity, View } from "react-native";
+import {
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
 import * as Yup from "yup";
 
@@ -13,6 +19,58 @@ const validationSchema = Yup.object().shape({
     .min(6, "Password must be at least 6 characters")
     .required("Password is required"),
 });
+
+const styles = StyleSheet.create({
+  form: {
+    flexDirection: "column",
+    gap: 16,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: "#d1d5db", // gray-300
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 8,
+    backgroundColor: "#fff",
+    shadowColor: "#f9fafb", // shadow-gray-50
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    marginBottom: 0,
+  },
+  errorText: {
+    color: "#ef4444", // red-500
+    fontSize: 14,
+    marginBottom: 10,
+  },
+  forgotLink: {
+    width: "100%",
+  },
+  forgotRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: 8,
+  },
+  forgotIcon: {
+    color: "#ec762c", // primary
+    marginLeft: 4,
+  },
+  button: {
+    backgroundColor: "#ec762c", // primary
+    padding: 16,
+    borderRadius: 16,
+    width: "100%",
+    alignItems: "center",
+  },
+  buttonText: {
+    color: "#fafafa", // neutral-50
+    fontWeight: "900",
+    fontSize: 20,
+    textAlign: "center",
+  },
+});
+
 const LoginForm = () => {
   return (
     <Formik
@@ -30,11 +88,11 @@ const LoginForm = () => {
         errors,
         touched,
       }) => (
-        <View className="flex gap-4 flex-col">
+        <View style={styles.form}>
           <View>
             <TextInput
               placeholderTextColor="#9CA3AF"
-              className="border py-3 border-gray-300 px-2 rounded-md outline-none bg-white shadow-gray-50"
+              style={styles.input}
               placeholder="Enter your email"
               keyboardType="email-address"
               autoCapitalize="none"
@@ -43,16 +101,14 @@ const LoginForm = () => {
               onBlur={handleBlur("email")}
             />
             {touched.email && errors.email && (
-              <Text className="text-red-500 text-[0.865rem] mb-[10px]">
-                {errors.email}
-              </Text>
+              <Text style={styles.errorText}>{errors.email}</Text>
             )}
           </View>
 
           <View>
             <TextInput
               placeholderTextColor="#9CA3AF"
-              className="border py-3 px-2 border-gray-300 rounded-md outline-none bg-white shadow-gray-50"
+              style={styles.input}
               placeholder="Enter Password"
               autoCapitalize="none"
               secureTextEntry
@@ -61,33 +117,19 @@ const LoginForm = () => {
               onBlur={handleBlur("password")}
             />
             {touched.password && errors.password && (
-              <Text className="text-red-500 text-[0.865rem] mb-[10px]">
-                {errors.password}
-              </Text>
+              <Text style={styles.errorText}>{errors.password}</Text>
             )}
           </View>
 
-          <Link href="/(auth)/forgot-password" className="w-full">
-            <View
-              className="flex items-center justify-end gap-2
-      flex-row"
-            >
+          <Link href="/(auth)/forgot-password" style={styles.forgotLink}>
+            <View style={styles.forgotRow}>
               <Text>Forgot your password?</Text>
-              <Icon
-                name="arrow-right"
-                color="#ec762c"
-                className="text-primary"
-              />
+              <Icon name="arrow-right" size={16} style={styles.forgotIcon} />
             </View>
           </Link>
 
-          <TouchableOpacity
-            onPress={handleSubmit as any}
-            className="bg-primary p-4 rounded-xl"
-          >
-            <Text className="text-neutral-50 font-[900] text-xl text-center">
-              Login
-            </Text>
+          <TouchableOpacity onPress={handleSubmit as any} style={styles.button}>
+            <Text style={styles.buttonText}>Login</Text>
           </TouchableOpacity>
         </View>
       )}

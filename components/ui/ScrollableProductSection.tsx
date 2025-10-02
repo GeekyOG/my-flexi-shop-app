@@ -1,10 +1,9 @@
 import React from "react";
-import { Dimensions, Text, View } from "react-native";
+import { Dimensions, ScrollView, StyleSheet, Text, View } from "react-native";
 import Animated from "react-native-reanimated";
 import ProductCard from "./ProductCard";
 
 const { width } = Dimensions.get("window");
-
 const itemWidth = width / 3;
 
 interface ScrollableProductSectionProps {
@@ -17,21 +16,35 @@ interface ScrollableProductSectionProps {
   title: string;
 }
 
+const styles = StyleSheet.create({
+  sectionHeader: {
+    backgroundColor: "#0b4688", // primary
+    paddingHorizontal: 8,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "500",
+    paddingVertical: 8,
+    color: "#fff", // dark-200
+  },
+  scrollView: {
+    marginTop: 8,
+  },
+});
+
 const ScrollableProductSection = ({
   products,
   title,
 }: ScrollableProductSectionProps) => {
-  const AnimatedScrollView = Animated.ScrollView;
+  const AnimatedScrollView = Animated.createAnimatedComponent(ScrollView);
 
   return (
     <View>
-      <View className="bg-primary px-2">
-        <Text className="text-[1rem] font-[500] py-2 text-dark-200">
-          {title}
-        </Text>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>{title}</Text>
       </View>
       <AnimatedScrollView
-        className="mt-2"
+        style={styles.scrollView}
         horizontal
         contentContainerStyle={{ gap: 12, paddingHorizontal: 8 }}
       >

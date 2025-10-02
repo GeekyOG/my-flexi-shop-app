@@ -1,8 +1,9 @@
 // app/(tabs)/store.tsx
+import Search from "@/components/home/Search";
 import ParallaxScrollView from "@/components/ParallaxScrollView";
 import * as React from "react";
-import { StyleSheet, View } from "react-native";
-import { Button, Modal, Portal, Surface, Text } from "react-native-paper";
+import { FlatList, StyleSheet, Text, View } from "react-native";
+import { IconButton } from "react-native-paper";
 
 export default function StoreScreen() {
   const [visible, setVisible] = React.useState(false);
@@ -14,39 +15,76 @@ export default function StoreScreen() {
     <ParallaxScrollView
       headerBackgroundColor={{ light: "#A1CEDC", dark: "#1D3D47" }}
     >
-      <View style={styles.container}>
-        {/* Trigger Button */}
-        <Button mode="contained" onPress={showModal}>
-          Select Size
-        </Button>
-
-        {/* Bottom Sheet Modal */}
-        <Portal>
-          <Modal
-            visible={visible}
-            onDismiss={hideModal}
-            contentContainerStyle={styles.modal}
-          >
-            <Text style={styles.title}>Select size</Text>
-
-            <View style={styles.sizes}>
-              {["XS", "S", "M", "L", "XL"].map((size) => (
-                <Surface key={size} style={styles.sizeBox}>
-                  <Text>{size}</Text>
-                </Surface>
-              ))}
-            </View>
-
-            <Button
-              mode="contained"
-              onPress={hideModal}
-              style={styles.addToCart}
-              buttonColor="red"
+      <Search />
+      <View
+        style={{ backgroundColor: "#fafafa", flexDirection: "row", gap: 8 }}
+      >
+        <FlatList
+          style={{
+            width: "30%",
+            backgroundColor: "#fff",
+          }}
+          data={[
+            { name: "Gowns" },
+            { name: "Tops" },
+            { name: "Trousers" },
+            { name: "Shoes" },
+            { name: "Bags" },
+            { name: "Accessories" },
+            { name: "Jackets" },
+            { name: "Skirts" },
+            { name: "Suits" },
+            { name: "Watches" },
+            { name: "Jewelry" },
+            { name: "Sportswear" },
+            { name: "Lingerie" },
+            { name: "Swimwear" },
+            { name: "Hats" },
+            { name: "Belts" },
+            { name: "Sunglasses" },
+            { name: "Scarves" },
+            { name: "Footwear" },
+            { name: "Kids Wear" },
+            { name: "Men’s Fashion" },
+            { name: "Women’s Fashion" },
+            { name: "Outerwear" },
+          ]}
+          renderItem={({ item }) => (
+            <View
+              style={{
+                paddingVertical: 16,
+              }}
             >
-              ADD TO CART
-            </Button>
-          </Modal>
-        </Portal>
+              <Text>{item.name}</Text>{" "}
+            </View>
+          )}
+          keyExtractor={(item, index) => index.toString()}
+        />
+        <View style={{ width: "70%", gap: 16 }}>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+              backgroundColor: "#fff",
+              paddingHorizontal: 8,
+            }}
+          >
+            <Text>All Products</Text>
+            <IconButton icon="arrow-right" />
+          </View>
+
+          <View
+            style={{
+              justifyContent: "space-between",
+              backgroundColor: "#fff",
+              paddingHorizontal: 8,
+            }}
+          >
+            <Text>All Products</Text>
+            <IconButton icon="arrow-right" />
+          </View>
+        </View>
       </View>
     </ParallaxScrollView>
   );
