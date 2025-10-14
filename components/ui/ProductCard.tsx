@@ -40,33 +40,6 @@ const ProductCard = ({ product, itemWidth }: ProductCardProps) => {
 
         <Text style={styles.productPrice}>N {product.price}</Text>
       </Pressable>
-
-      {/* <View>
-        <View style={styles.modal}>
-          <View style={styles.modalPadding}>
-            <Text style={styles.modalTitle}>{product.name}</Text>
-
-            <View style={styles.modalSection}>
-              <Text style={styles.modalDescription}>{product.description}</Text>
-              <Text style={styles.modalPrice}>N{product.price}</Text>
-            </View>
-
-            <View style={styles.modalActions}>
-              <Pressable onPress={hideModal}>
-                <Text style={styles.actionText}> ADD TO CART</Text>
-              </Pressable>
-              <Pressable
-                onPress={() => {
-                  router.push("/product/9");
-                  hideModal();
-                }}
-              >
-                <Text style={styles.actionText}> VIEW DETAILS</Text>
-              </Pressable>
-            </View>
-          </View>
-        </View>
-      </View> */}
     </>
   );
 };
@@ -80,7 +53,7 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   productName: {
-    fontSize: 14,
+    fontSize: 12,
     color: "#a3a3a3", // neutral-400
     marginTop: 8,
   },

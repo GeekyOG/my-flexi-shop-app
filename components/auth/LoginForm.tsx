@@ -1,15 +1,11 @@
-import { Link } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import { Formik } from "formik";
 import React from "react";
-import {
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from "react-native";
+
+import { StyleSheet, Text, TextInput, View } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
 import * as Yup from "yup";
+import Button from "../ui/Button";
 
 const validationSchema = Yup.object().shape({
   email: Yup.string()
@@ -72,12 +68,15 @@ const styles = StyleSheet.create({
 });
 
 const LoginForm = () => {
+  const router = useRouter();
+
   return (
     <Formik
       initialValues={{ email: "", password: "" }}
       validationSchema={validationSchema}
       onSubmit={(values) => {
         console.log("Form Data", values);
+        router.push("/(tabs)");
       }}
     >
       {({
@@ -127,10 +126,7 @@ const LoginForm = () => {
               <Icon name="arrow-right" size={16} style={styles.forgotIcon} />
             </View>
           </Link>
-
-          <TouchableOpacity onPress={handleSubmit as any} style={styles.button}>
-            <Text style={styles.buttonText}>Login</Text>
-          </TouchableOpacity>
+          <Button handleSubmit={handleSubmit}>Login</Button>
         </View>
       )}
     </Formik>

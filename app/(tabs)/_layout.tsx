@@ -17,7 +17,7 @@ export default function HomeScreen() {
       focusedIcon: "home",
       unfocusedIcon: "home-outline",
     },
-    { key: "shop", title: "Store", focusedIcon: "store" },
+    { key: "shop", title: "Categories", focusedIcon: "grid" },
     {
       key: "cart",
       title: "Cart",

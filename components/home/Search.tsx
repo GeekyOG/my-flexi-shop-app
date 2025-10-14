@@ -6,7 +6,7 @@ const styles = StyleSheet.create({
   container: {
     borderWidth: 1,
     borderColor: "#737373", // neutral-500
-    borderRadius: 8,
+    borderRadius: 12,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
