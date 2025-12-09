@@ -4,7 +4,7 @@ import Animated from "react-native-reanimated";
 import ProductCard from "./ProductCard";
 const { width } = Dimensions.get("window");
 
-const itemWidth = width / 2.5;
+const itemWidth = width / 4;
 
 interface HorizontalProductListSectionProps {
   products: {

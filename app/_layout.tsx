@@ -28,8 +28,8 @@ export default function RootLayout() {
     Poppins_400Regular,
     Poppins_700Bold,
   });
-
   useEffect(() => {
+    // AsyncStorage.setItem("hasLaunched", "");
     const checkFirstLaunch = async () => {
       try {
         const hasLaunched = await AsyncStorage.getItem("hasLaunched");
@@ -63,6 +63,7 @@ export default function RootLayout() {
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           <Stack.Screen name="product/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="checkout" options={{ headerShown: false }} />
           <Stack.Screen name="+not-found" />
         </Stack>
         <StatusBar style="auto" />

@@ -5,7 +5,8 @@ import HorizontalProductListSection from "@/components/ui/HorizontalProductListS
 import ScrollableProductSection from "@/components/ui/ScrollableProductSection";
 import { Image } from "expo-image";
 
-import { StyleSheet, Text, View } from "react-native";
+import { FlatList, StyleSheet, Text, View } from "react-native";
+import { storeStyles } from "./styles/store";
 
 const styles = StyleSheet.create({
   row: {
@@ -33,6 +34,32 @@ const styles = StyleSheet.create({
   },
 });
 
+const categories = [
+  { name: "Gowns" },
+  { name: "Tops" },
+  { name: "Trousers" },
+  { name: "Shoes" },
+  { name: "Bags" },
+  { name: "Accessories & gadgets" },
+  { name: "Jackets" },
+  { name: "Skirts" },
+  { name: "Suits" },
+  { name: "Watches" },
+  { name: "Jewelry" },
+  { name: "Sportswear" },
+  { name: "Lingerie" },
+  { name: "Swimwear" },
+  { name: "Hats" },
+  { name: "Belts" },
+  { name: "Sunglasses" },
+  { name: "Scarves" },
+  { name: "Footwear" },
+  { name: "Kids Wear" },
+  { name: "Men’s Fashion" },
+  { name: "Women’s Fashion" },
+  { name: "Outerwear" },
+];
+
 export default function Home() {
   const products = [
     {
@@ -55,6 +82,20 @@ export default function Home() {
       image: "../../assets/images/image2.png",
       description:
         "Lightweight gown with a timeless look, suitable for both casual and formal wear.",
+    },
+    {
+      name: "Affordable quality gown",
+      price: "2,000,000",
+      image: "../../assets/images/image1.png",
+      description:
+        "Classic gown with a chic silhouette, crafted for everyday elegance.",
+    },
+    {
+      name: "Affordable quality gown",
+      price: "2,000,000",
+      image: "../../assets/images/image2.png",
+      description:
+        "Graceful gown designed with fine details, ideal for weddings and parties.",
     },
     {
       name: "Affordable quality gown",
@@ -102,6 +143,40 @@ export default function Home() {
             contentFit="contain"
           />
           <Text style={styles.infoText}>Reliable</Text>
+        </View>
+      </View>
+
+      <View>
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+          }}
+        >
+          <Text style={{ fontSize: 16, fontWeight: 600 }}>Categories</Text>
+          <Text style={{ color: "#DB3022" }}>View All</Text>
+        </View>
+        <View>
+          <FlatList
+            data={categories}
+            style={{ marginTop: 14 }}
+            horizontal
+            keyExtractor={(item, index) => index.toString()}
+            renderItem={({ item }) => (
+              <View
+                style={{
+                  borderColor: "#e3e3e3",
+                  borderWidth: 1,
+                  marginRight: 12,
+                  borderRadius: 6,
+                  padding: 4,
+                  paddingHorizontal: 12,
+                }}
+              >
+                <Text style={storeStyles.categoryText}>{item.name}</Text>
+              </View>
+            )}
+          />
         </View>
       </View>
 

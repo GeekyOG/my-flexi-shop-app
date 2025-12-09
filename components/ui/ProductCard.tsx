@@ -27,7 +27,7 @@ const ProductCard = ({ product, itemWidth }: ProductCardProps) => {
         <View style={styles.imageContainer}>
           <Image
             style={{ height: 150, width: "100%" }}
-            contentFit="cover"
+            contentFit="contain"
             source={require("../../assets/images/image.png")}
           />
         </View>
@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   productPrice: {
-    fontSize: 16,
+    fontSize: 14,
     color: "#404040", // neutral-700
     fontWeight: "500",
     marginBottom: 8,
