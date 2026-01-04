@@ -17,8 +17,11 @@ import "../global.css";
 import { useColorScheme } from "@/hooks/useColorScheme";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useState } from "react";
+import { Provider } from "react-redux";
 import OnboardingScreen from "./onboradering/page";
 import SplashScreen from "./splash/page";
+import { store } from "./store";
+import { initializeAuth } from "./store/slices/authSlice";
 
 export default function RootLayout() {
   const [isFirstLaunch, setIsFirstLaunch] = useState<boolean | null>(null);
@@ -28,10 +31,13 @@ export default function RootLayout() {
     Poppins_400Regular,
     Poppins_700Bold,
   });
+
   useEffect(() => {
-    // AsyncStorage.setItem("hasLaunched", "");
     const checkFirstLaunch = async () => {
       try {
+        // Initialize auth state from storage
+        await store.dispatch(initializeAuth());
+
         const hasLaunched = await AsyncStorage.getItem("hasLaunched");
         if (hasLaunched === null) {
           setIsFirstLaunch(true);
@@ -57,17 +63,24 @@ export default function RootLayout() {
 
   // ✅ Normal app flow
   return (
-    <PaperProvider>
-      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-          <Stack.Screen name="product/[id]" options={{ headerShown: false }} />
-          <Stack.Screen name="checkout" options={{ headerShown: false }} />
-          <Stack.Screen name="+not-found" />
-        </Stack>
-        <StatusBar style="auto" />
-      </ThemeProvider>
-    </PaperProvider>
+    <Provider store={store}>
+      <PaperProvider>
+        <ThemeProvider
+          value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+        >
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+            <Stack.Screen
+              name="product/[id]"
+              options={{ headerShown: false }}
+            />
+            <Stack.Screen name="checkout" options={{ headerShown: false }} />
+            <Stack.Screen name="+not-found" />
+          </Stack>
+          <StatusBar style="auto" />
+        </ThemeProvider>
+      </PaperProvider>
+    </Provider>
   );
 }
