@@ -11,7 +11,10 @@ export const salesApi = api.injectEndpoints({
         customerId,
         productId,
       }) => {
-        const params = new URLSearchParams({ page, size });
+        const params = new URLSearchParams({
+          page: String(page),
+          size: String(size),
+        });
         if (search) params.append("search", search);
         if (status) params.append("status", status);
         if (customerId) params.append("customerId", customerId);

@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import {
+  ActivityIndicator,
   Dimensions,
   FlatList,
   Image,
@@ -11,10 +12,24 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import {
+  useGetWishlistQuery,
+  useMoveToCartMutation,
+  useRemoveFromWishlistMutation,
+} from "../api/wishlistApi";
 
 const { width } = Dimensions.get("window");
 const CARD_PADDING = 16;
 const CARD_GAP = 12;
+
+interface WishlistItem {
+  id: string;
+  name: string;
+  category?: string;
+  price: number;
+  image?: string;
+  [key: string]: any;
+}
 
 // Calculate card width based on screen size
 const getCardWidth = () => {
@@ -28,81 +43,90 @@ const Saved = () => {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [viewMode, setViewMode] = useState("grid");
 
-  const categories = ["all", "clothing", "electronics", "home", "accessories"];
+  // Fetch wishlist from API
+  const {
+    data: wishlistData,
+    isLoading: wishlistLoading,
+    error: wishlistError,
+  } = useGetWishlistQuery({});
+  const [removeFromWishlist] = useRemoveFromWishlistMutation();
+  const [moveToCart] = useMoveToCartMutation();
 
-  const savedProducts = [
-    {
-      id: "1",
-      name: "Wireless Headphones",
-      price: 89.99,
-      image:
-        "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=400&fit=crop",
-      category: "electronics",
-      savedDate: "2 days ago",
-    },
-    {
-      id: "2",
-      name: "Minimalist Watch",
-      price: 159.0,
-      image:
-        "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=400&fit=crop",
-      category: "accessories",
-      savedDate: "1 week ago",
-    },
-    {
-      id: "3",
-      name: "Leather Backpack",
-      price: 129.99,
-      image:
-        "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=400&fit=crop",
-      category: "accessories",
-      savedDate: "3 days ago",
-    },
-    {
-      id: "4",
-      name: "Ceramic Vase Set",
-      price: 45.0,
-      image:
-        "https://images.unsplash.com/photo-1578500494198-246f612d3b3d?w=400&h=400&fit=crop",
-      category: "home",
-      savedDate: "5 days ago",
-    },
-    {
-      id: "5",
-      name: "Cotton T-Shirt",
-      price: 29.99,
-      image:
-        "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=400&h=400&fit=crop",
-      category: "clothing",
-      savedDate: "1 day ago",
-    },
-    {
-      id: "6",
-      name: "Smart Speaker",
-      price: 99.99,
-      image:
-        "https://images.unsplash.com/photo-1589492477829-5e65395b66cc?w=400&h=400&fit=crop",
-      category: "electronics",
-      savedDate: "4 days ago",
-    },
+  const wishlistItems: WishlistItem[] = wishlistData?.items || [];
+  const categories = [
+    "all",
+    ...new Set(
+      wishlistItems.map((item: WishlistItem) => item.category || "other")
+    ),
   ];
 
-  const filteredProducts = savedProducts.filter((product) => {
-    const matchesSearch = product.name
-      .toLowerCase()
+  // Filter items based on search and category
+  const filteredItems = wishlistItems.filter((item: WishlistItem) => {
+    const matchesSearch = item.name
+      ?.toLowerCase()
       .includes(searchQuery.toLowerCase());
     const matchesCategory =
-      selectedCategory === "all" || product.category === selectedCategory;
+      selectedCategory === "all" || item.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
+  const handleRemove = async (id: string) => {
+    try {
+      await removeFromWishlist(id).unwrap();
+    } catch (error) {
+      console.error("Failed to remove from wishlist:", error);
+    }
+  };
+
+  const handleMoveToCart = async (id: string) => {
+    try {
+      await moveToCart(id).unwrap();
+    } catch (error) {
+      console.error("Failed to move to cart:", error);
+    }
+  };
+
+  if (wishlistLoading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#DB3022" />
+          <Text>Loading saved items...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (wishlistError) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <Text style={styles.errorText}>Failed to load saved items</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!wishlistItems || wishlistItems.length === 0) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <Text style={styles.emptyText}>You have no saved items</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   const cardWidth = getCardWidth();
 
-  const renderGridItem = ({ item }) => (
+  const renderGridItem = ({ item }: { item: any }) => (
     <View style={[styles.gridCard, { width: cardWidth }]}>
       <View style={styles.imageContainer}>
         <Image source={{ uri: item.image }} style={styles.productImage} />
-        <TouchableOpacity style={styles.heartButton}>
+        <TouchableOpacity
+          style={styles.heartButton}
+          onPress={() => handleRemove(item.id)}
+        >
           <Text style={styles.heartIcon}>❤️</Text>
         </TouchableOpacity>
       </View>
@@ -110,10 +134,17 @@ const Saved = () => {
         <Text style={styles.productName} numberOfLines={1}>
           {item.name}
         </Text>
-        <Text style={styles.savedDate}>Saved {item.savedDate}</Text>
+        <Text style={styles.savedDate}>
+          Saved {item.savedDate || "recently"}
+        </Text>
         <View style={styles.cardFooter}>
-          <Text style={styles.price}>${item.price.toFixed(2)}</Text>
-          <TouchableOpacity style={styles.addButton}>
+          <Text style={styles.price}>
+            {item.price ? `₦${item.price}` : "N/A"}
+          </Text>
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => handleMoveToCart(item.id)}
+          >
             <Text style={styles.addButtonText}>Add to Cart</Text>
           </TouchableOpacity>
         </View>
@@ -121,18 +152,25 @@ const Saved = () => {
     </View>
   );
 
-  const renderListItem = ({ item }) => (
+  const renderListItem = ({ item }: { item: any }) => (
     <View style={styles.listCard}>
       <Image source={{ uri: item.image }} style={styles.listImage} />
       <View style={styles.listContent}>
         <Text style={styles.productName} numberOfLines={1}>
           {item.name}
         </Text>
-        <Text style={styles.savedDate}>Saved {item.savedDate}</Text>
-        <Text style={styles.price}>${item.price.toFixed(2)}</Text>
+        <Text style={styles.savedDate}>
+          Saved {item.savedDate || "recently"}
+        </Text>
+        <Text style={styles.price}>
+          {item.price ? `₦${item.price}` : "N/A"}
+        </Text>
       </View>
       <View style={styles.listActions}>
-        <TouchableOpacity style={styles.heartButtonSmall}>
+        <TouchableOpacity
+          style={styles.heartButtonSmall}
+          onPress={() => handleRemove(item.id)}
+        >
           <Text style={styles.heartIcon}>❤️</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.addButtonSmall}>
@@ -149,7 +187,7 @@ const Saved = () => {
         <View style={styles.headerTop}>
           <View>
             <Text style={styles.title}>Saved Items</Text>
-            <Text style={styles.subtitle}>{filteredProducts.length} items</Text>
+            <Text style={styles.subtitle}>{filteredItems?.length} items</Text>
           </View>
           <View style={styles.viewToggle}>
             <TouchableOpacity
@@ -225,7 +263,7 @@ const Saved = () => {
       </View>
 
       {/* Products */}
-      {filteredProducts.length === 0 ? (
+      {filteredItems.length === 0 ? (
         <View style={styles.emptyState}>
           <Text style={styles.emptyIcon}>💔</Text>
           <Text style={styles.emptyTitle}>No saved items found</Text>
@@ -235,7 +273,7 @@ const Saved = () => {
         </View>
       ) : (
         <FlatList
-          data={filteredProducts}
+          data={filteredItems}
           renderItem={viewMode === "grid" ? renderGridItem : renderListItem}
           keyExtractor={(item) => item.id}
           numColumns={
@@ -256,6 +294,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F9FAFB",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 16,
+  },
+  errorText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#DC2626",
+    marginTop: 12,
   },
   header: {
     backgroundColor: "#FFFFFF",

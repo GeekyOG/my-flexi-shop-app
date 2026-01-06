@@ -1,7 +1,9 @@
 import { Link } from "expo-router";
 import React from "react";
 import {
+  ActivityIndicator,
   Dimensions,
+  Image,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -18,23 +20,38 @@ const getNumColumns = () => {
   return 3;
 };
 
+interface Product {
+  id: string;
+  name: string;
+  image?: string;
+  icon?: string;
+}
+
 const CategoriesGrid = ({
-  title = "APPLIANCES",
-  icon = "🏠",
+  title = "PRODUCTS",
+  icon = "📦",
+  products = [],
+  isLoading = false,
 }: {
   title?: string;
   icon?: string;
+  products?: Product[];
+  isLoading?: boolean;
 }) => {
   const numColumns = getNumColumns();
 
-  const items = [
-    { name: "Refrigerators", icon: "❄️" },
-    { name: "Washing Machines", icon: "🧺" },
-    { name: "Microwaves", icon: "🍽️" },
-    { name: "Air Conditioners", icon: "❄️" },
-    { name: "Televisions", icon: "📺" },
-    { name: "Vacuum Cleaners", icon: "🧹" },
-  ];
+  // Fallback items if no products provided
+  const items =
+    products && products.length > 0
+      ? products
+      : [
+          { id: "1", name: "Refrigerators", icon: "❄️" },
+          { id: "2", name: "Washing Machines", icon: "🧺" },
+          { id: "3", name: "Microwaves", icon: "🍽️" },
+          { id: "4", name: "Air Conditioners", icon: "❄️" },
+          { id: "5", name: "Televisions", icon: "📺" },
+          { id: "6", name: "Vacuum Cleaners", icon: "🧹" },
+        ];
 
   return (
     <View style={styles.container}>
@@ -44,28 +61,41 @@ const CategoriesGrid = ({
           <Text style={styles.iconText}>{icon}</Text>
           <Text style={styles.headerText}>{title}</Text>
         </View>
-        <Link style={styles.viewAllLink} href={"/(auth)/forgot-password"}>
+        <Link style={styles.viewAllLink} href={"/product/[id]"}>
           <Text style={styles.viewAllText}>View All →</Text>
         </Link>
       </View>
 
       {/* Grid of Items */}
-      <View style={styles.gridContainer}>
-        {items.map((item, index) => (
-          <TouchableOpacity
-            key={index}
-            style={[styles.gridItem, { width: `${100 / numColumns - 3}%` }]}
-            activeOpacity={0.7}
-          >
-            <View style={styles.iconContainer}>
-              <Text style={styles.itemIcon}>{item.icon}</Text>
-            </View>
-            <Text style={styles.itemText} numberOfLines={2}>
-              {item.name}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
+      {isLoading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#DB3022" />
+        </View>
+      ) : (
+        <View style={styles.gridContainer}>
+          {items.map((item, index) => (
+            <TouchableOpacity
+              key={item.id || index}
+              style={[styles.gridItem, { width: `${100 / numColumns - 3}%` }]}
+              activeOpacity={0.7}
+            >
+              <View style={styles.iconContainer}>
+                {item.image ? (
+                  <Image
+                    source={{ uri: item.image }}
+                    style={styles.productImage}
+                  />
+                ) : (
+                  <Text style={styles.itemIcon}>{item.icon || "📦"}</Text>
+                )}
+              </View>
+              <Text style={styles.itemText} numberOfLines={2}>
+                {item.name}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
     </View>
   );
 };
@@ -81,6 +111,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 8,
     elevation: 2,
+  },
+  loadingContainer: {
+    paddingVertical: 40,
+    justifyContent: "center",
+    alignItems: "center",
   },
   headerRow: {
     flexDirection: "row",
@@ -143,14 +178,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 3,
     elevation: 1,
+    overflow: "hidden",
   },
-  itemIcon: {
-    fontSize: isTablet ? 28 : 24,
-  },
-  itemText: {
-    fontSize: isTablet ? 12 : 10,
-    fontWeight: "500",
-    color: "#333",
+  productImage: {
+    width: "100%",
+    height: "100%",
+    borderRadius: isTablet ? 30 : 25,
     textAlign: "center",
     lineHeight: 14,
   },

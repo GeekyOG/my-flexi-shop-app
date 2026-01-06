@@ -9,14 +9,31 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSLocalNetworkUsageDescription": "This app requires local network access to connect to your server",
+        "NSBonjourServices": ["_http._tcp"],
+        "NSExceptionDomains": {
+          "localhost": {
+            "NSIncludesSubdomains": false,
+            "NSExceptionAllowsInsecureHTTPLoads": true,
+            "NSExceptionMinimumTLSVersion": "TLSv1.2"
+          },
+          "192.168.1.132": {
+            "NSIncludesSubdomains": false,
+            "NSExceptionAllowsInsecureHTTPLoads": true
+          }
+        }
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/LOGO.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "usesCleartextTraffic": true,
+      "permissions": ["android.permission.INTERNET"]
     },
     "web": {
       "bundler": "metro",

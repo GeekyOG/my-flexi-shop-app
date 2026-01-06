@@ -12,7 +12,10 @@ export const productsApi = api.injectEndpoints({
         minPrice,
         maxPrice,
       }) => {
-        const params = new URLSearchParams({ page, size });
+        const params = new URLSearchParams({
+          page: String(page),
+          size: String(size),
+        });
         if (search) params.append("search", search);
         if (vendorId) params.append("vendorId", vendorId);
         if (categoryId) params.append("categoryId", categoryId);

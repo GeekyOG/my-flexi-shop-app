@@ -4,7 +4,10 @@ export const kycApi = api.injectEndpoints({
   endpoints: (builder) => ({
     getKycs: builder.query({
       query: ({ page = 1, size = 20, search = "", status }) => {
-        const params = new URLSearchParams({ page, size });
+        const params = new URLSearchParams({
+          page: String(page),
+          size: String(size),
+        });
         if (search) params.append("search", search);
         if (status) params.append("status", status);
         return `/kyc?${params.toString()}`;

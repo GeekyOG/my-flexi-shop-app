@@ -6,6 +6,12 @@ import ScrollableProductSection from "@/components/ui/ScrollableProductSection";
 import { Image } from "expo-image";
 
 import { FlatList, StyleSheet, Text, View } from "react-native";
+import { useGetCategoriesQuery } from "../api/categoriesApi";
+import {
+  useGetMostViewedProductsQuery,
+  useGetProductsQuery,
+  useGetTopSellingProductsQuery,
+} from "../api/productsApi";
 import { storeStyles } from "./styles/store";
 
 const styles = StyleSheet.create({
@@ -61,57 +67,29 @@ const categories = [
 ];
 
 export default function Home() {
-  const products = [
-    {
-      name: "Affordable quality gown",
-      price: "2,000,000",
-      image: "../../assets/images/image.png",
-      description:
-        "Elegant evening gown made with premium fabric, perfect for special occasions. Elegant evening gown made with premium fabric, perfect for special occasions.Elegant evening gown made with premium fabric, perfect for special occasions.Elegant evening gown made with premium fabric, perfect for special occasions.",
-    },
-    {
-      name: "Affordable quality gown",
-      price: "2,000,000",
-      image: "../../assets/images/image1.png",
-      description:
-        "Stylish modern gown with a flattering fit, designed for comfort and class.",
-    },
-    {
-      name: "Affordable quality gown",
-      price: "2,000,000",
-      image: "../../assets/images/image2.png",
-      description:
-        "Lightweight gown with a timeless look, suitable for both casual and formal wear.",
-    },
-    {
-      name: "Affordable quality gown",
-      price: "2,000,000",
-      image: "../../assets/images/image1.png",
-      description:
-        "Classic gown with a chic silhouette, crafted for everyday elegance.",
-    },
-    {
-      name: "Affordable quality gown",
-      price: "2,000,000",
-      image: "../../assets/images/image2.png",
-      description:
-        "Graceful gown designed with fine details, ideal for weddings and parties.",
-    },
-    {
-      name: "Affordable quality gown",
-      price: "2,000,000",
-      image: "../../assets/images/image1.png",
-      description:
-        "Classic gown with a chic silhouette, crafted for everyday elegance.",
-    },
-    {
-      name: "Affordable quality gown",
-      price: "2,000,000",
-      image: "../../assets/images/image2.png",
-      description:
-        "Graceful gown designed with fine details, ideal for weddings and parties.",
-    },
-  ];
+  // Fetch categories
+  const { data: categoriesData } = useGetCategoriesQuery({
+    page: 1,
+    size: 1000,
+    search: "",
+  });
+
+  // Fetch featured products
+  const { data: featuredData } = useGetProductsQuery({
+    page: 1,
+    size: 30,
+    search: "",
+  });
+
+  // Fetch top selling products
+  const { data: topSellingData } = useGetTopSellingProductsQuery(10);
+
+  // Fetch most viewed products
+  const { data: mostViewedData } = useGetMostViewedProductsQuery(10);
+
+  const displayTopSellingProducts = topSellingData?.data || [];
+  const displayMostViewedProducts = mostViewedData?.data || [];
+  const displayCategories = categoriesData?.data || categories;
 
   return (
     <ParallaxScrollView
@@ -158,7 +136,7 @@ export default function Home() {
         </View>
         <View>
           <FlatList
-            data={categories}
+            data={displayCategories}
             style={{ marginTop: 14 }}
             horizontal
             keyExtractor={(item, index) => index.toString()}
@@ -181,11 +159,17 @@ export default function Home() {
       </View>
 
       <View style={styles.scrollSections}>
-        <ScrollableProductSection title="Featured" products={products} />
-        <ScrollableProductSection title="Top Sellers" products={products} />
+        <ScrollableProductSection
+          title="Most Viewed"
+          products={displayMostViewedProducts}
+        />
+        <ScrollableProductSection
+          title="Top Sellers"
+          products={displayTopSellingProducts}
+        />
         <HorizontalProductListSection
           title="Recent Added"
-          products={products}
+          products={displayMostViewedProducts}
         />
       </View>
     </ParallaxScrollView>

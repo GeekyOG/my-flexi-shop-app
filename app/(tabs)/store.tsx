@@ -5,6 +5,8 @@ import CategoryList from "@/components/store/CategoriesList";
 import * as React from "react";
 import { Dimensions, ScrollView, StyleSheet, Text, View } from "react-native";
 import { IconButton } from "react-native-paper";
+import { useGetCategoriesQuery } from "../api/categoriesApi";
+import { useGetProductsQuery } from "../api/productsApi";
 
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
@@ -13,39 +15,42 @@ const isDesktop = width >= 1024;
 export default function StoreScreen() {
   const [selectedCategory, setSelectedCategory] = React.useState("All");
 
-  const categories = [
-    { name: "All" },
-    { name: "Gowns" },
-    { name: "Tops" },
-    { name: "Trousers" },
-    { name: "Shoes" },
-    { name: "Bags" },
-    { name: "Accessories & gadgets" },
-    { name: "Jackets" },
-    { name: "Skirts" },
-    { name: "Suits" },
-    { name: "Watches" },
-    { name: "Jewelry" },
-    { name: "Sportswear" },
-    { name: "Lingerie" },
-    { name: "Swimwear" },
-    { name: "Hats" },
-    { name: "Belts" },
-    { name: "Sunglasses" },
-    { name: "Scarves" },
-    { name: "Footwear" },
-    { name: "Kids Wear" },
-    { name: "Men's Fashion" },
-    { name: "Women's Fashion" },
-    { name: "Outerwear" },
+  // Fetch categories
+  const { data: categoriesData } = useGetCategoriesQuery({
+    page: 1,
+    size: 1000,
+    search: "",
+  });
+
+  // Fetch products
+  const { data: productsData, isLoading: productsLoading } =
+    useGetProductsQuery({
+      page: 1,
+      size: 12,
+      search: "",
+      categoryId:
+        selectedCategory && selectedCategory !== "All"
+          ? selectedCategory
+          : undefined,
+    });
+
+  // Fallback dummy categories
+  const dummyCategories = [
+    { id: "all", name: "All" },
+    { id: "1", name: "Gowns" },
+    { id: "2", name: "Tops" },
+    { id: "3", name: "Trousers" },
   ];
 
-  const productSections = [
-    { title: "APPLIANCES", icon: "🏠" },
-    { title: "FASHION", icon: "👗" },
-    { title: "ELECTRONICS", icon: "📱" },
-    { title: "BEAUTY", icon: "💄" },
+  const categories = [
+    { name: "All" },
+    ...(categoriesData?.items || dummyCategories).map((cat: any) => ({
+      id: cat.id,
+      name: cat.name,
+    })),
   ];
+
+  const products = productsData?.items || [];
 
   return (
     <ParallaxScrollView
@@ -117,14 +122,13 @@ export default function StoreScreen() {
             <IconButton icon="tune-vertical" iconColor="#DB3022" size={24} />
           </View>
 
-          {/* Product Grids */}
-          {productSections.map((section, index) => (
-            <CategoriesGrid
-              key={index}
-              title={section.title}
-              icon={section.icon}
-            />
-          ))}
+          {/* Product Grids - Display API products */}
+          <CategoriesGrid
+            title="FEATURED PRODUCTS"
+            icon="⭐"
+            products={products}
+            isLoading={productsLoading}
+          />
         </ScrollView>
       </View>
     </ParallaxScrollView>

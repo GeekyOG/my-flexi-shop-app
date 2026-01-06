@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React from "react";
 import {
-  Dimensions,
+  ActivityIndicator,
   Image,
   SafeAreaView,
   ScrollView,
@@ -9,59 +9,82 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import {
+  useGetCartQuery,
+  useRemoveFromCartMutation,
+  useUpdateCartItemMutation,
+} from "../api/cartApi";
 
-const { width } = Dimensions.get("window");
+interface CartItem {
+  id: string;
+  name: string;
+  price: number;
+  quantity: number;
+  image?: string;
+}
 
 const Cart = () => {
-  const [cartItems, setCartItems] = useState([
-    {
-      id: "1",
-      name: "Wireless Headphones",
-      price: 520.0,
-      quantity: 1,
-      image:
-        "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=400&fit=crop",
-      color: "#A5071A",
-      inStock: true,
-    },
-    {
-      id: "2",
-      name: "Smart Watch Pro",
-      price: 350.0,
-      quantity: 2,
-      image:
-        "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=400&fit=crop",
-      color: "#000",
-      inStock: true,
-    },
-    {
-      id: "3",
-      name: "Leather Backpack",
-      price: 129.99,
-      quantity: 1,
-      image:
-        "https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=400&h=400&fit=crop",
-      color: "#9F5A23",
-      inStock: false,
-    },
-  ]);
+  // Fetch cart from API
+  const {
+    data: cartData,
+    isLoading: cartLoading,
+    error: cartError,
+  } = useGetCartQuery({});
+  const [updateCartItem] = useUpdateCartItemMutation();
+  const [removeFromCart] = useRemoveFromCartMutation();
 
-  const updateQuantity = (id: string, delta: number) => {
-    setCartItems((items) =>
-      items.map((item) =>
-        item.id === id
-          ? { ...item, quantity: Math.max(1, item.quantity + delta) }
-          : item
-      )
+  const cartItems = cartData?.items || [];
+
+  const updateQuantity = async (id: string, newQuantity: number) => {
+    try {
+      await updateCartItem({ id, quantity: Math.max(1, newQuantity) }).unwrap();
+    } catch (error) {
+      console.error("Failed to update quantity:", error);
+    }
+  };
+
+  const removeItem = async (id: string) => {
+    try {
+      await removeFromCart(id).unwrap();
+    } catch (error) {
+      console.error("Failed to remove item:", error);
+    }
+  };
+
+  if (cartLoading) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.centerContainer}>
+          <ActivityIndicator size="large" color="#DB3022" />
+          <Text>Loading cart...</Text>
+        </View>
+      </SafeAreaView>
     );
-  };
+  }
 
-  const removeItem = (id: string) => {
-    setCartItems((items) => items.filter((item) => item.id !== id));
-  };
+  if (cartError) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.centerContainer}>
+          <Text style={styles.errorText}>Failed to load cart</Text>
+          <Text style={styles.errorDetails}>{(cartError as any)?.message}</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!cartItems || cartItems.length === 0) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.centerContainer}>
+          <Text style={styles.emptyText}>Your cart is empty</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   const subtotal = cartItems.reduce(
-    (sum, item) => sum + item.price * item.quantity,
+    (sum: number, item: CartItem) => sum + item.price * item.quantity,
     0
   );
   const shipping = 15.0;
@@ -88,7 +111,7 @@ const Cart = () => {
       >
         {/* Cart Items */}
         <View style={styles.itemsContainer}>
-          {cartItems.map((item) => (
+          {cartItems.map((item: any) => (
             <View key={item.id} style={styles.cartItem}>
               <Image source={{ uri: item.image }} style={styles.itemImage} />
 
@@ -217,6 +240,29 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#F8F9FB",
     paddingTop: 16,
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 16,
+  },
+  errorText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#DC2626",
+    marginTop: 12,
+  },
+  errorDetails: {
+    fontSize: 14,
+    color: "#666",
+    marginTop: 8,
+    textAlign: "center",
+  },
+  emptyText: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#666",
   },
   header: {
     flexDirection: "row",

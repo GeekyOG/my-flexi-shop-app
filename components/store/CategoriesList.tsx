@@ -1,11 +1,15 @@
 import { storeStyles } from "@/app/(tabs)/styles/store";
 import React from "react";
-import { FlatList, Text, View } from "react-native";
+import { FlatList, Text, TouchableOpacity } from "react-native";
 
 export default function CategoryList({
   categories,
+  selectedCategory,
+  onSelectCategory,
 }: {
   categories: { name: string }[];
+  selectedCategory?: string;
+  onSelectCategory?: (category: string) => void;
 }) {
   return (
     <FlatList
@@ -13,9 +17,26 @@ export default function CategoryList({
       data={categories}
       keyExtractor={(item, index) => index.toString()}
       renderItem={({ item }) => (
-        <View style={storeStyles.categoryItem}>
-          <Text style={storeStyles.categoryText}>{item.name}</Text>
-        </View>
+        <TouchableOpacity
+          onPress={() => onSelectCategory?.(item.name)}
+          style={[
+            storeStyles.categoryItem,
+            selectedCategory === item.name && {
+              backgroundColor: "#111827",
+            },
+          ]}
+        >
+          <Text
+            style={[
+              storeStyles.categoryText,
+              selectedCategory === item.name && {
+                color: "#FFFFFF",
+              },
+            ]}
+          >
+            {item.name}
+          </Text>
+        </TouchableOpacity>
       )}
     />
   );

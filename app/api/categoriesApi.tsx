@@ -1,13 +1,13 @@
-// ===============================================
-// FILE: src/store/api/categoriesApi.js
-// ===============================================
 import { api } from "./apiSlice";
 
 export const categoriesApi = api.injectEndpoints({
   endpoints: (builder) => ({
     getCategories: builder.query({
       query: ({ page = 1, size = 50, search = "" }) => {
-        const params = new URLSearchParams({ page, size });
+        const params = new URLSearchParams({
+          page: String(page),
+          size: String(size),
+        });
         if (search) params.append("search", search);
         return `/categories?${params.toString()}`;
       },

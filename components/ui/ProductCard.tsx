@@ -1,3 +1,4 @@
+import { formatCurrency } from "@/utils/storage";
 import { Image } from "expo-image";
 import { router } from "expo-router";
 import React from "react";
@@ -38,7 +39,9 @@ const ProductCard = ({ product, itemWidth }: ProductCardProps) => {
             : product.name}
         </Text>
 
-        <Text style={styles.productPrice}>N {product.price}</Text>
+        <Text style={styles.productPrice}>
+          N{formatCurrency(Number(product.price))}
+        </Text>
       </Pressable>
     </>
   );

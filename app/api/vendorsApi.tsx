@@ -4,7 +4,10 @@ export const vendorsApi = api.injectEndpoints({
   endpoints: (builder) => ({
     getVendors: builder.query({
       query: ({ page = 1, size = 20, search = "", isVerified }) => {
-        const params = new URLSearchParams({ page, size });
+        const params = new URLSearchParams({
+          page: String(page),
+          size: String(size),
+        });
         if (search) params.append("search", search);
         if (isVerified !== undefined) params.append("isVerified", isVerified);
         return `/vendors?${params.toString()}`;

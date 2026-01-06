@@ -12,3 +12,9 @@ export const getItem = async (key: string) => {
 export const removeItem = async (key: string) => {
   await AsyncStorage.removeItem(key);
 };
+
+export const formatCurrency = (n: number) =>
+  n.toLocaleString("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
