@@ -9,7 +9,6 @@ import { FlatList, StyleSheet, Text, View } from "react-native";
 import { useGetCategoriesQuery } from "../api/categoriesApi";
 import {
   useGetMostViewedProductsQuery,
-  useGetProductsQuery,
   useGetTopSellingProductsQuery,
 } from "../api/productsApi";
 import { storeStyles } from "./styles/store";
@@ -40,44 +39,11 @@ const styles = StyleSheet.create({
   },
 });
 
-const categories = [
-  { name: "Gowns" },
-  { name: "Tops" },
-  { name: "Trousers" },
-  { name: "Shoes" },
-  { name: "Bags" },
-  { name: "Accessories & gadgets" },
-  { name: "Jackets" },
-  { name: "Skirts" },
-  { name: "Suits" },
-  { name: "Watches" },
-  { name: "Jewelry" },
-  { name: "Sportswear" },
-  { name: "Lingerie" },
-  { name: "Swimwear" },
-  { name: "Hats" },
-  { name: "Belts" },
-  { name: "Sunglasses" },
-  { name: "Scarves" },
-  { name: "Footwear" },
-  { name: "Kids Wear" },
-  { name: "Men’s Fashion" },
-  { name: "Women’s Fashion" },
-  { name: "Outerwear" },
-];
-
 export default function Home() {
   // Fetch categories
   const { data: categoriesData } = useGetCategoriesQuery({
     page: 1,
     size: 1000,
-    search: "",
-  });
-
-  // Fetch featured products
-  const { data: featuredData } = useGetProductsQuery({
-    page: 1,
-    size: 30,
     search: "",
   });
 
@@ -89,7 +55,7 @@ export default function Home() {
 
   const displayTopSellingProducts = topSellingData?.data || [];
   const displayMostViewedProducts = mostViewedData?.data || [];
-  const displayCategories = categoriesData?.data || categories;
+  const displayCategories = categoriesData?.items || [];
 
   return (
     <ParallaxScrollView

@@ -3,7 +3,6 @@ import React from "react";
 import {
   ActivityIndicator,
   Dimensions,
-  Image,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -29,7 +28,7 @@ interface Product {
 
 const CategoriesGrid = ({
   title = "PRODUCTS",
-  icon = "📦",
+  icon = "",
   products = [],
   isLoading = false,
 }: {
@@ -80,14 +79,14 @@ const CategoriesGrid = ({
               activeOpacity={0.7}
             >
               <View style={styles.iconContainer}>
-                {item.image ? (
+                {/* {item.image ? (
                   <Image
                     source={{ uri: item.image }}
                     style={styles.productImage}
                   />
                 ) : (
-                  <Text style={styles.itemIcon}>{item.icon || "📦"}</Text>
-                )}
+                  <Text style={styles.itemIcon}>{item.icon || ""}</Text>
+                )} */}
               </View>
               <Text style={styles.itemText} numberOfLines={2}>
                 {item.name}
@@ -164,6 +163,9 @@ const styles = StyleSheet.create({
     padding: 12,
     borderWidth: 1,
     borderColor: "#f0f0f0",
+  },
+  itemText: {
+    fontSize: 10,
   },
   iconContainer: {
     width: isTablet ? 60 : 50,

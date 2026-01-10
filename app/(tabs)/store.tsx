@@ -8,6 +8,7 @@ import { IconButton } from "react-native-paper";
 import { useGetCategoriesQuery } from "../api/categoriesApi";
 import { useGetProductsQuery } from "../api/productsApi";
 
+
 const { width } = Dimensions.get("window");
 const isTablet = width >= 768;
 const isDesktop = width >= 1024;
@@ -125,7 +126,7 @@ export default function StoreScreen() {
           {/* Product Grids - Display API products */}
           <CategoriesGrid
             title="FEATURED PRODUCTS"
-            icon="⭐"
+            icon=""
             products={products}
             isLoading={productsLoading}
           />

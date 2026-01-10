@@ -1,6 +1,7 @@
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 
-const baseUrl = "https://flexi.aoudit.com/api/v1";
+// const baseUrl = "https://flexi.aoudit.com/api/v1";
+const baseUrl = "http://localhost:8000/api/v1";
 
 const baseQuery = fetchBaseQuery({
   baseUrl,
