@@ -8,6 +8,7 @@ const itemWidth = width / 3;
 
 interface ScrollableProductSectionProps {
   products: {
+    id: string;
     name: string;
     price: string;
     image: string;

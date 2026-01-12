@@ -1,9 +1,10 @@
 import AppBar from "@/components/ui/AppBar";
-import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import { formatCurrency } from "@/utils/storage";
+import { Image } from "expo-image";
+import { router, useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
+
 import {
-  Image,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
@@ -11,35 +12,20 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import Icon from "react-native-vector-icons/Ionicons";
+import { useGetCartQuery } from "../api/cartApi";
 
 const CartScreen = () => {
-  const [cartItems, setCartItems] = useState([
-    {
-      id: 1,
-      name: "Woman Sweater",
-      category: "Woman Fashion",
-      price: 70,
-      quantity: 1,
-      image: "https://i.imgur.com/ep1Fd2t.png", // replace with your product image
-    },
-    {
-      id: 2,
-      name: "Smart Watch",
-      category: "Electronics",
-      price: 55,
-      quantity: 1,
-      image: "https://i.imgur.com/zVaSzOu.png", // replace with your product image
-    },
-    {
-      id: 3,
-      name: "Wireless Headphone",
-      category: "Electronics",
-      price: 120,
-      quantity: 1,
-      image: "https://i.imgur.com/Hjq2z1p.png", // replace with your product image
-    },
-  ]);
+  const { data: cartData } = useGetCartQuery({});
+
+  const [cartItems, setCartItems] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (cartData) {
+      setCartItems(cartData?.data?.items);
+    }
+  }, cartData);
 
   const [discountCode, setDiscountCode] = useState("");
 
@@ -57,52 +43,64 @@ const CartScreen = () => {
     setCartItems((prev) => prev.filter((item) => item.id !== id));
   };
 
-  const subtotal = cartItems.reduce(
-    (sum, item) => sum + item.price * item.quantity,
+  const subtotal = cartItems?.reduce(
+    (sum, item) => sum + item.product.price * item.quantity,
     0
   );
 
   const navigation = useRouter();
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <AppBar title="My Cart" cartCount={cartItems.length} />
+    <SafeAreaProvider style={styles.safeArea}>
+      <AppBar title="My Cart" cartCount={cartData?.data?.itemCount ?? 0} />
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {cartItems.map((item) => (
-          <View key={item.id} style={styles.card}>
-            <Image source={{ uri: item.image }} style={styles.image} />
-            <View style={styles.info}>
-              <Text style={styles.name}>{item.name}</Text>
-              <Text style={styles.category}>{item.category}</Text>
-              <Text style={styles.price}>${item.price.toFixed(2)}</Text>
-            </View>
-
-            {/* Quantity + Delete */}
-            <View style={styles.actions}>
-              <TouchableOpacity
-                onPress={() => handleRemoveItem(item.id)}
-                style={styles.deleteButton}
-              >
-                <Icon name="trash-outline" size={18} color="#FF6B00" />
-              </TouchableOpacity>
-
-              <View style={styles.qtyContainer}>
-                <TouchableOpacity
-                  onPress={() => handleQuantityChange(item.id, -1)}
-                >
-                  <Icon name="remove" size={18} color="#000" />
-                </TouchableOpacity>
-                <Text style={styles.qtyText}>{item.quantity}</Text>
-                <TouchableOpacity
-                  onPress={() => handleQuantityChange(item.id, 1)}
-                >
-                  <Icon name="add" size={18} color="#000" />
-                </TouchableOpacity>
+        {cartItems?.length > 0 &&
+          cartItems?.map((item: any) => (
+            <TouchableOpacity
+              onPress={() => router.push(`/product/${item.product.id}`)}
+              key={item.id}
+              style={styles.card}
+            >
+              <Image
+                source={`https://flexi.aoudit.com/api/v1/product-images/product/${item.product?.id}/display`}
+                style={styles.image}
+              />
+              <View style={styles.info}>
+                <Text style={styles.name}>{item.product.name}</Text>
+                <Text style={styles.category}>
+                  {item.product.category.name}
+                </Text>
+                <Text style={styles.price}>
+                  N{formatCurrency(Number(item.product.price))}
+                </Text>
               </View>
-            </View>
-          </View>
-        ))}
+
+              {/* Quantity + Delete */}
+              <View style={styles.actions}>
+                <TouchableOpacity
+                  onPress={() => handleRemoveItem(item.id)}
+                  style={styles.deleteButton}
+                >
+                  <Icon name="trash-outline" size={18} color="#FF6B00" />
+                </TouchableOpacity>
+
+                <View style={styles.qtyContainer}>
+                  <TouchableOpacity
+                    onPress={() => handleQuantityChange(item.id, -1)}
+                  >
+                    <Icon name="remove" size={18} color="#000" />
+                  </TouchableOpacity>
+                  <Text style={styles.qtyText}>{item.quantity}</Text>
+                  <TouchableOpacity
+                    onPress={() => handleQuantityChange(item.id, 1)}
+                  >
+                    <Icon name="add" size={18} color="#000" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </TouchableOpacity>
+          ))}
 
         {/* Discount Code */}
         <View style={styles.discountContainer}>
@@ -122,12 +120,12 @@ const CartScreen = () => {
         <View style={styles.summaryContainer}>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Subtotal</Text>
-            <Text style={styles.summaryValue}>${subtotal.toFixed(2)}</Text>
+            <Text style={styles.summaryValue}>N{formatCurrency(subtotal)}</Text>
           </View>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Total</Text>
             <Text style={[styles.summaryValue, styles.totalValue]}>
-              ${subtotal.toFixed(2)}
+              N{formatCurrency(subtotal)}
             </Text>
           </View>
         </View>
@@ -142,7 +140,7 @@ const CartScreen = () => {
           <Text style={styles.checkoutText}>Checkout</Text>
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+    </SafeAreaProvider>
   );
 };
 

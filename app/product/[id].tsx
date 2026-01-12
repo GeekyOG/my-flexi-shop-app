@@ -1,75 +1,63 @@
 import ParallaxScrollView from "@/components/ParallaxScrollView";
 import AppBar from "@/components/ui/AppBar";
+import { formatCurrency } from "@/utils/storage";
 import { Image } from "expo-image";
-import React, { useState } from "react";
+import { router, useLocalSearchParams } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
   Dimensions,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import Icon from "react-native-vector-icons/Ionicons";
+import { useAddToCartMutation } from "../api/cartApi";
+import { useGetProductQuery, useGetProductsQuery } from "../api/productsApi";
 
 const { width } = Dimensions.get("window");
 
-const COLORS = ["#A5071A", "#000", "#123F9F", "#9F5A23", "#E0E0E0"];
-
-const PRODUCT_IMAGES = [
-  require("../../assets/images/image.png"),
-  require("../../assets/images/image1.png"),
-  require("../../assets/images/image.png"),
-  require("../../assets/images/image1.png"),
-];
-
-const RECOMMENDED_PRODUCTS = [
-  {
-    id: 1,
-    name: "Smart Watch Pro",
-    price: 299.99,
-    rating: 4.7,
-    image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400",
-  },
-  {
-    id: 2,
-    name: "Bluetooth Speaker",
-    price: 149.99,
-    rating: 4.9,
-    image: "https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=400",
-  },
-  {
-    id: 3,
-    name: "Laptop Stand",
-    price: 79.99,
-    rating: 4.6,
-    image: "https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=400",
-  },
-  {
-    id: 4,
-    name: "Wireless Mouse",
-    price: 59.99,
-    rating: 4.8,
-    image: "https://images.unsplash.com/photo-1527814050087-3793815479db?w=400",
-  },
-];
-
 const ProductDetails = () => {
-  const [selectedColor, setSelectedColor] = useState(COLORS[0]);
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<"desc" | "specs" | "reviews">(
     "desc"
   );
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
-  const vendor = {
-    name: "Tariqul Islam",
-    verified: true,
+  const { id } = useLocalSearchParams();
+
+  const [addToCart, { isLoading }] = useAddToCartMutation();
+
+  const { data: productData } = useGetProductQuery(id);
+
+  const { data: categoryProducts } = useGetProductsQuery({
+    categoryId: productData?.data?.category?.id ?? "",
+  });
+
+  const product = productData?.data;
+
+  const handleAddToCart = () => {
+    addToCart({ productId: product?.id, quantity });
   };
 
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+
+  useEffect(() => {
+    if (product) {
+      setSelectedImageIndex(
+        product?.images?.find(
+          (image: { isDisplay: boolean; id: number }) =>
+            image.isDisplay === true
+        ).id
+      );
+    }
+  }, [product]);
+
+  const vendor = product?.vendor;
+
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaProvider>
       <AppBar title="" cartCount={5} />
 
       <ParallaxScrollView
@@ -80,7 +68,11 @@ const ProductDetails = () => {
           <Image
             style={styles.mainImage}
             contentFit="contain"
-            source={PRODUCT_IMAGES[selectedImageIndex]}
+            source={
+              selectedImageIndex == 0
+                ? `https://flexi.aoudit.com/api/v1/product-images/product/${product?.id}/display`
+                : `https://flexi.aoudit.com/api/v1/product-images/${selectedImageIndex}`
+            }
           />
         </View>
 
@@ -91,19 +83,19 @@ const ProductDetails = () => {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.thumbnailList}
           >
-            {PRODUCT_IMAGES.map((image, index) => (
+            {productData?.data?.images.map((image, index) => (
               <TouchableOpacity
                 key={index}
-                onPress={() => setSelectedImageIndex(index)}
+                onPress={() => setSelectedImageIndex(image.id)}
                 style={[
                   styles.thumbnailWrapper,
-                  selectedImageIndex === index && styles.selectedThumbnail,
+                  selectedImageIndex === image?.id && styles.selectedThumbnail,
                 ]}
               >
                 <Image
                   style={styles.thumbnailImage}
                   contentFit="cover"
-                  source={image}
+                  source={`https://flexi.aoudit.com/api/v1/product-images/${image?.id}`}
                 />
               </TouchableOpacity>
             ))}
@@ -112,18 +104,20 @@ const ProductDetails = () => {
 
         <View style={styles.container}>
           {/* Product Info */}
-          <Text style={styles.title}>Wireless Headphone</Text>
+          <Text style={styles.title}>{product?.name}</Text>
 
           <View style={styles.rowBetween}>
-            <Text style={styles.price}>$520.00</Text>
+            <Text style={styles.price}>
+              N{formatCurrency(Number(product?.price))}
+            </Text>
             <View style={styles.row}>
               <Icon
-                name={vendor.verified ? "shield-checkmark" : "shield-outline"}
+                name={vendor?.verified ? "shield-checkmark" : "shield-outline"}
                 size={18}
-                color={vendor.verified ? "#22C55E" : "#EF4444"}
+                color={vendor?.verified ? "#22C55E" : "#EF4444"}
               />
               <Text style={styles.seller}>
-                Seller: <Text style={styles.bold}>{vendor.name}</Text>
+                Seller: <Text style={styles.bold}>{vendor?.businessName}</Text>
               </Text>
             </View>
           </View>
@@ -139,35 +133,8 @@ const ProductDetails = () => {
           <View style={styles.divider} />
 
           {/* Key Features */}
-          <View style={styles.featuresContainer}>
-            <View style={styles.featureItem}>
-              <View style={styles.featureIcon}>
-                <Icon name="battery-charging" size={20} color="#FF6B00" />
-              </View>
-              <Text style={styles.featureLabel}>20h Battery</Text>
-            </View>
-            <View style={styles.featureItem}>
-              <View style={styles.featureIcon}>
-                <Icon name="wifi" size={20} color="#FF6B00" />
-              </View>
-              <Text style={styles.featureLabel}>Bluetooth 5.2</Text>
-            </View>
-            <View style={styles.featureItem}>
-              <View style={styles.featureIcon}>
-                <Icon name="water" size={20} color="#FF6B00" />
-              </View>
-              <Text style={styles.featureLabel}>Waterproof</Text>
-            </View>
-            <View style={styles.featureItem}>
-              <View style={styles.featureIcon}>
-                <Icon name="volume-high" size={20} color="#FF6B00" />
-              </View>
-              <Text style={styles.featureLabel}>Noise Cancel</Text>
-            </View>
-          </View>
 
           {/* Divider */}
-          <View style={styles.divider} />
 
           {/* Tabs */}
           <View style={styles.tabContainer}>
@@ -201,11 +168,7 @@ const ProductDetails = () => {
           <View style={styles.tabContentContainer}>
             {activeTab === "desc" && (
               <Text style={styles.tabContent}>
-                Experience crystal-clear sound and deep bass with our premium
-                wireless headphones. Engineered with advanced noise cancellation
-                technology, these headphones deliver an immersive audio
-                experience whether you're traveling, working, or working out.
-                The ergonomic design ensures all-day comfort.
+                {product?.description ?? ""}
               </Text>
             )}
             {activeTab === "specs" && (
@@ -253,13 +216,14 @@ const ProductDetails = () => {
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={styles.recommendedList}
             >
-              {RECOMMENDED_PRODUCTS.map((product) => (
+              {categoryProducts?.items.map((product: any) => (
                 <TouchableOpacity
                   key={product.id}
                   style={styles.recommendedCard}
+                  onPress={() => router.push(`/product/${product.id}`)}
                 >
                   <Image
-                    source={{ uri: product.image }}
+                    source={`https://flexi.aoudit.com/api/v1/product-images/product/${product?.id}/display`}
                     style={styles.recommendedImage}
                   />
                   <View style={styles.recommendedInfo}>
@@ -268,14 +232,14 @@ const ProductDetails = () => {
                     </Text>
                     <View style={styles.recommendedFooter}>
                       <Text style={styles.recommendedPrice}>
-                        ${product.price}
+                        N{formatCurrency(product.price ?? 0)}
                       </Text>
-                      <View style={styles.recommendedRating}>
+                      {/* <View style={styles.recommendedRating}>
                         <Icon name="star" size={12} color="#F59E0B" />
                         <Text style={styles.recommendedRatingText}>
                           {product.rating}
                         </Text>
-                      </View>
+                      </View> */}
                     </View>
                   </View>
                 </TouchableOpacity>
@@ -294,27 +258,32 @@ const ProductDetails = () => {
             <Icon name="remove" size={20} color="#000" />
           </TouchableOpacity>
           <Text style={styles.qtyText}>{quantity}</Text>
-          <TouchableOpacity onPress={() => setQuantity(quantity + 1)}>
+          <TouchableOpacity
+            onPress={() => {
+              if (Number(product?.quantity) > quantity) {
+                setQuantity(quantity + 1);
+              }
+            }}
+          >
             <Icon name="add" size={20} color="#000" />
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity style={styles.cartButton}>
+        <TouchableOpacity
+          style={styles.cartButton}
+          disabled={isLoading}
+          onPress={handleAddToCart}
+        >
           <Text style={styles.cartText}>Add to Cart</Text>
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+    </SafeAreaProvider>
   );
 };
 
 export default ProductDetails;
 
 const styles = StyleSheet.create({
-  safeArea: {
-    paddingTop: 16,
-    flex: 1,
-    backgroundColor: "#fff",
-  },
   scrollContent: {
     marginBottom: 90,
   },

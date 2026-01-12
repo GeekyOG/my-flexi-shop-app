@@ -4,12 +4,18 @@ import { StyleSheet, Text, TouchableOpacity } from "react-native";
 const Button = ({
   children,
   handleSubmit,
+  disabled,
 }: {
   children: ReactNode;
   handleSubmit: () => void;
+  disabled?: boolean;
 }) => {
   return (
-    <TouchableOpacity onPress={handleSubmit as any} style={styles.button}>
+    <TouchableOpacity
+      disabled={disabled}
+      onPress={handleSubmit as any}
+      style={styles.button}
+    >
       {<Text style={styles.buttonText}>{children}</Text>}
     </TouchableOpacity>
   );

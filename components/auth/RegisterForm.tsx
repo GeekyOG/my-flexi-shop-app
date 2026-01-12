@@ -1,6 +1,6 @@
-import { useLoginCustomerMutation } from "@/app/api/authApi";
-import { useAuth } from "@/context/authContext";
+import { useRegisterCustomerMutation } from "@/app/api/authApi";
 import { Link, useRouter } from "expo-router";
+import * as SecureStore from "expo-secure-store";
 import { Formik } from "formik";
 import React from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
@@ -9,12 +9,15 @@ import * as Yup from "yup";
 import Button from "../ui/Button";
 
 const validationSchema = Yup.object().shape({
+  name: Yup.string().required("Name is required"),
+  phone: Yup.string().required("Phone number is required"),
   email: Yup.string()
     .email("Invalid email address")
     .required("Email is required"),
   password: Yup.string()
     .min(6, "Password must be at least 6 characters")
     .required("Password is required"),
+  confirmPassword: Yup.string().required("Confirm Password"),
 });
 
 const styles = StyleSheet.create({
@@ -68,24 +71,27 @@ const styles = StyleSheet.create({
   },
 });
 
-const LoginForm = () => {
-  const { login, skip, user, token } = useAuth();
-
-  console.log(user, token);
-
+const RegisterForm = () => {
   const router = useRouter();
-  const [loginCustomer, { isLoading, error }] = useLoginCustomerMutation();
+  const [registerCustomer, { isLoading, error }] =
+    useRegisterCustomerMutation();
   return (
     <Formik
-      initialValues={{ email: "", password: "" }}
+      initialValues={{
+        name: "",
+        phone: "",
+        email: "",
+        password: "",
+        confirmPassword: "",
+      }}
       validationSchema={validationSchema}
       onSubmit={async (values, { setSubmitting }) => {
         try {
-          const res = await loginCustomer(values).unwrap();
+          const res = await registerCustomer(values).unwrap();
+          console.log(res);
 
-          login(res.token, res.data);
-
-          router.replace("/(tabs)");
+          await SecureStore.setItemAsync("token", res.token);
+          router.replace("/(auth)/login");
         } catch (err) {
           console.log("Login error:", err);
         } finally {
@@ -102,6 +108,35 @@ const LoginForm = () => {
         touched,
       }) => (
         <View style={styles.form}>
+          <View>
+            <TextInput
+              placeholderTextColor="#9CA3AF"
+              style={styles.input}
+              placeholder="Enter your full name"
+              autoCapitalize="none"
+              value={values.name}
+              onChangeText={handleChange("name")}
+              onBlur={handleBlur("name")}
+            />
+            {touched.name && errors.name && (
+              <Text style={styles.errorText}>{errors.name}</Text>
+            )}
+          </View>
+          <View>
+            <TextInput
+              placeholderTextColor="#9CA3AF"
+              style={styles.input}
+              placeholder="Enter your phone number"
+              keyboardType="phone-pad"
+              autoCapitalize="none"
+              value={values.phone}
+              onChangeText={handleChange("phone")}
+              onBlur={handleBlur("phone")}
+            />
+            {touched.phone && errors.phone && (
+              <Text style={styles.errorText}>{errors.phone}</Text>
+            )}
+          </View>
           <View>
             <TextInput
               placeholderTextColor="#9CA3AF"
@@ -133,6 +168,21 @@ const LoginForm = () => {
               <Text style={styles.errorText}>{errors.password}</Text>
             )}
           </View>
+          <View>
+            <TextInput
+              placeholderTextColor="#9CA3AF"
+              style={styles.input}
+              placeholder="Confirm Password"
+              autoCapitalize="none"
+              secureTextEntry
+              value={values.confirmPassword}
+              onChangeText={handleChange("confirmPassword")}
+              onBlur={handleBlur("confirmPassword")}
+            />
+            {touched.confirmPassword && errors.confirmPassword && (
+              <Text style={styles.errorText}>{errors.confirmPassword}</Text>
+            )}
+          </View>
 
           <Link href="/(auth)/forgot-password" style={styles.forgotLink}>
             <View style={styles.forgotRow}>
@@ -140,11 +190,13 @@ const LoginForm = () => {
               <Icon name="arrow-right" size={16} style={styles.forgotIcon} />
             </View>
           </Link>
-          <Button handleSubmit={handleSubmit}>Login</Button>
+          <Button disabled={isLoading} handleSubmit={handleSubmit}>
+            Create Account
+          </Button>
         </View>
       )}
     </Formik>
   );
 };
 
-export default LoginForm;
+export default RegisterForm;

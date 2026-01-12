@@ -1,22 +1,14 @@
 import AppBar from "@/components/auth/AppBar";
-import LoginForm from "@/components/auth/LoginForm";
+import RegisterForm from "@/components/auth/RegisterForm";
 import ParallaxScrollView from "@/components/ParallaxScrollView";
-import { Link, router } from "expo-router";
 import React from "react";
-import {
-  Dimensions,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-} from "react-native";
+import { Dimensions, StyleSheet, View } from "react-native";
 
 const { height } = Dimensions.get("window");
 const styles = StyleSheet.create({
   container: {
     justifyContent: "space-between",
     flex: 1,
-    height: height - 250,
   },
   inner: {
     marginTop: 24,
@@ -47,15 +39,7 @@ const Register = () => {
         <View>
           <AppBar title="Sign Up" />
           <View style={styles.inner}>
-            <LoginForm />
-            <Link href="/(auth)/register" style={styles.link}>
-              <TouchableOpacity
-                style={styles.button}
-                onPress={() => router.push("/(auth)/register")}
-              >
-                <Text style={styles.buttonText}>Create Account</Text>
-              </TouchableOpacity>
-            </Link>
+            <RegisterForm />
           </View>
         </View>
       </View>

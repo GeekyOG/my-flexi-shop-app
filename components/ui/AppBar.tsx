@@ -1,4 +1,5 @@
-import { useNavigation } from "expo-router";
+import { useGetCartQuery } from "@/app/api/cartApi";
+import { router, useNavigation } from "expo-router";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import Icon from "react-native-vector-icons/Ionicons";
@@ -10,6 +11,12 @@ interface AppBarProps {
 
 const AppBar = ({ title, cartCount = 0 }: AppBarProps) => {
   const navigation = useNavigation();
+
+  const { data: cart } = useGetCartQuery({});
+
+  console.log(cart, "cart");
+
+  // comst;
 
   return (
     <View style={styles.container}>
@@ -32,7 +39,10 @@ const AppBar = ({ title, cartCount = 0 }: AppBarProps) => {
           <Icon name="search-outline" size={24} color="#111" />
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.iconButton, { marginLeft: 8 }]}>
+        <TouchableOpacity
+          onPress={() => router.push("/checkout/CartScreen")}
+          style={[styles.iconButton, { marginLeft: 8 }]}
+        >
           <Icon name="cart-outline" size={24} color="#111" />
           {cartCount > 0 && (
             <View style={styles.badge}>

@@ -4,6 +4,7 @@ import { View } from "react-native";
 import { Badge, BottomNavigation } from "react-native-paper";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import Home from ".";
+import { useGetCartQuery } from "../api/cartApi";
 import CartScreen from "./cart";
 import Profile from "./profile";
 import Saved from "./saved";
@@ -17,9 +18,6 @@ export default function HomeScreen() {
 
   const handleCartPress = () => {
     route.push("/checkout/CartScreen");
-    console.log("🛒 Cart tab clicked!");
-    // 👉 Custom logic: open modal, navigate, or trigger animation
-    // e.g. navigation.push("/cart") if you’re using expo-router
   };
 
   const [routes] = useState([
@@ -63,13 +61,15 @@ export default function HomeScreen() {
     profile: Profile,
   });
 
+  const { data: cartData } = useGetCartQuery({});
+
   return (
     <BottomNavigation
       navigationState={{ index, routes }}
       onIndexChange={(newIndex) => {
         const selectedRoute = routes[newIndex];
         if (selectedRoute.key === "cart") {
-          handleCartPress(); // custom function
+          handleCartPress();
         } else {
           setIndex(newIndex);
         }
@@ -95,7 +95,7 @@ export default function HomeScreen() {
                   }}
                   size={16}
                 >
-                  {cartCount}
+                  {cartData?.data?.itemCount ?? 0}
                 </Badge>
               )}
             </View>

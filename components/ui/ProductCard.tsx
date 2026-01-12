@@ -6,6 +6,7 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 
 interface ProductCardProps {
   product: {
+    id: string;
     name: string;
     price: string;
     description: string;
@@ -23,13 +24,13 @@ const ProductCard = ({ product, itemWidth }: ProductCardProps) => {
     <>
       <Pressable
         style={{ width: itemWidth, position: "relative" }}
-        onPress={() => router.push("/product/9")}
+        onPress={() => router.push(`/product/${product.id}`)}
       >
         <View style={styles.imageContainer}>
           <Image
             style={{ height: 150, width: "100%" }}
             contentFit="contain"
-            source={require("../../assets/images/image.png")}
+            source={`https://flexi.aoudit.com/api/v1/product-images/product/${product.id}/display`}
           />
         </View>
 

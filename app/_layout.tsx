@@ -1,8 +1,10 @@
+import { useColorScheme } from "@/hooks/useColorScheme";
 import {
   Poppins_400Regular,
   Poppins_700Bold,
   useFonts,
 } from "@expo-google-fonts/poppins";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import {
   DarkTheme,
   DefaultTheme,
@@ -10,14 +12,12 @@ import {
 } from "@react-navigation/native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { useEffect, useState } from "react";
 import { Provider as PaperProvider } from "react-native-paper";
 import "react-native-reanimated";
-import "../global.css";
-
-import { useColorScheme } from "@/hooks/useColorScheme";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useEffect, useState } from "react";
 import { Provider } from "react-redux";
+import { AuthProvider } from "../context/authContext";
+import "../global.css";
 import OnboardingScreen from "./onboradering/page";
 import SplashScreen from "./splash/page";
 import { store } from "./store";
@@ -63,24 +63,26 @@ export default function RootLayout() {
 
   // ✅ Normal app flow
   return (
-    <Provider store={store}>
-      <PaperProvider>
-        <ThemeProvider
-          value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
-        >
-          <Stack>
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-            <Stack.Screen
-              name="product/[id]"
-              options={{ headerShown: false }}
-            />
-            <Stack.Screen name="checkout" options={{ headerShown: false }} />
-            <Stack.Screen name="+not-found" />
-          </Stack>
-          <StatusBar style="auto" />
-        </ThemeProvider>
-      </PaperProvider>
-    </Provider>
+    <AuthProvider>
+      <Provider store={store}>
+        <PaperProvider>
+          <ThemeProvider
+            value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+          >
+            <Stack>
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+              <Stack.Screen
+                name="product/[id]"
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen name="checkout" options={{ headerShown: false }} />
+              <Stack.Screen name="+not-found" />
+            </Stack>
+            <StatusBar style="auto" />
+          </ThemeProvider>
+        </PaperProvider>
+      </Provider>
+    </AuthProvider>
   );
 }
