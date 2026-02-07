@@ -1,4 +1,5 @@
-import { Link } from "expo-router";
+import { Image } from "expo-image";
+import { router } from "expo-router";
 import React from "react";
 import {
   ActivityIndicator,
@@ -40,17 +41,7 @@ const CategoriesGrid = ({
   const numColumns = getNumColumns();
 
   // Fallback items if no products provided
-  const items =
-    products && products.length > 0
-      ? products
-      : [
-          { id: "1", name: "Refrigerators", icon: "❄️" },
-          { id: "2", name: "Washing Machines", icon: "🧺" },
-          { id: "3", name: "Microwaves", icon: "🍽️" },
-          { id: "4", name: "Air Conditioners", icon: "❄️" },
-          { id: "5", name: "Televisions", icon: "📺" },
-          { id: "6", name: "Vacuum Cleaners", icon: "🧹" },
-        ];
+  const items = products && products.length > 0 ? products : [];
 
   return (
     <View style={styles.container}>
@@ -60,9 +51,6 @@ const CategoriesGrid = ({
           <Text style={styles.iconText}>{icon}</Text>
           <Text style={styles.headerText}>{title}</Text>
         </View>
-        <Link style={styles.viewAllLink} href={"/product/[id]"}>
-          <Text style={styles.viewAllText}>View All →</Text>
-        </Link>
       </View>
 
       {/* Grid of Items */}
@@ -74,19 +62,16 @@ const CategoriesGrid = ({
         <View style={styles.gridContainer}>
           {items.map((item, index) => (
             <TouchableOpacity
+              onPress={() => router.push(`/product/${item.id}`)}
               key={item.id || index}
               style={[styles.gridItem, { width: `${100 / numColumns - 3}%` }]}
               activeOpacity={0.7}
             >
               <View style={styles.iconContainer}>
-                {/* {item.image ? (
-                  <Image
-                    source={{ uri: item.image }}
-                    style={styles.productImage}
-                  />
-                ) : (
-                  <Text style={styles.itemIcon}>{item.icon || ""}</Text>
-                )} */}
+                <Image
+                  source={`https://flexi.aoudit.com/api/v1/product-images/product/${item.id}/display`}
+                  style={styles.productImage}
+                />
               </View>
               <Text style={styles.itemText} numberOfLines={2}>
                 {item.name}

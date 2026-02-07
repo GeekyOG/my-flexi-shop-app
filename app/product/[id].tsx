@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import Toast from "react-native-toast-message";
 import Icon from "react-native-vector-icons/Ionicons";
 import { useAddToCartMutation } from "../api/cartApi";
 import { useGetProductQuery, useGetProductsQuery } from "../api/productsApi";
@@ -22,7 +23,7 @@ const { width } = Dimensions.get("window");
 const ProductDetails = () => {
   const [quantity, setQuantity] = useState(1);
   const [activeTab, setActiveTab] = useState<"desc" | "specs" | "reviews">(
-    "desc"
+    "desc",
   );
 
   const { id } = useLocalSearchParams();
@@ -37,8 +38,36 @@ const ProductDetails = () => {
 
   const product = productData?.data;
 
-  const handleAddToCart = () => {
-    addToCart({ productId: product?.id, quantity });
+  const handleAddToCart = async () => {
+    try {
+      await addToCart({ productId: product?.id, quantity }).unwrap();
+
+      // Show success toast
+      Toast.show({
+        type: "success",
+        text1: "Added to Cart! 🛒",
+        text2: `${product?.name} (${quantity} ${quantity > 1 ? "items" : "item"})`,
+        position: "bottom",
+        visibilityTime: 3000,
+        autoHide: true,
+        topOffset: 30,
+        bottomOffset: 100,
+      });
+
+      // Reset quantity after successful add
+      setQuantity(1);
+    } catch (error: any) {
+      // Show error toast
+      Toast.show({
+        type: "error",
+        text1: "Failed to Add to Cart",
+        text2:
+          error?.data?.message || "Something went wrong. Please try again.",
+        position: "bottom",
+        visibilityTime: 4000,
+        bottomOffset: 100,
+      });
+    }
   };
 
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
@@ -48,8 +77,8 @@ const ProductDetails = () => {
       setSelectedImageIndex(
         product?.images?.find(
           (image: { isDisplay: boolean; id: number }) =>
-            image.isDisplay === true
-        ).id
+            image.isDisplay === true,
+        ).id,
       );
     }
   }, [product]);
@@ -83,22 +112,25 @@ const ProductDetails = () => {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.thumbnailList}
           >
-            {productData?.data?.images.map((image, index) => (
-              <TouchableOpacity
-                key={index}
-                onPress={() => setSelectedImageIndex(image.id)}
-                style={[
-                  styles.thumbnailWrapper,
-                  selectedImageIndex === image?.id && styles.selectedThumbnail,
-                ]}
-              >
-                <Image
-                  style={styles.thumbnailImage}
-                  contentFit="cover"
-                  source={`https://flexi.aoudit.com/api/v1/product-images/${image?.id}`}
-                />
-              </TouchableOpacity>
-            ))}
+            {productData?.data?.images.map(
+              (image: { id: number }, index: number) => (
+                <TouchableOpacity
+                  key={index}
+                  onPress={() => setSelectedImageIndex(image.id)}
+                  style={[
+                    styles.thumbnailWrapper,
+                    selectedImageIndex === image?.id &&
+                      styles.selectedThumbnail,
+                  ]}
+                >
+                  <Image
+                    style={styles.thumbnailImage}
+                    contentFit="cover"
+                    source={`https://flexi.aoudit.com/api/v1/product-images/${image?.id}`}
+                  />
+                </TouchableOpacity>
+              ),
+            )}
           </ScrollView>
         </View>
 
@@ -131,10 +163,6 @@ const ProductDetails = () => {
 
           {/* Divider */}
           <View style={styles.divider} />
-
-          {/* Key Features */}
-
-          {/* Divider */}
 
           {/* Tabs */}
           <View style={styles.tabContainer}>
@@ -234,12 +262,6 @@ const ProductDetails = () => {
                       <Text style={styles.recommendedPrice}>
                         N{formatCurrency(product.price ?? 0)}
                       </Text>
-                      {/* <View style={styles.recommendedRating}>
-                        <Icon name="star" size={12} color="#F59E0B" />
-                        <Text style={styles.recommendedRatingText}>
-                          {product.rating}
-                        </Text>
-                      </View> */}
                     </View>
                   </View>
                 </TouchableOpacity>
@@ -270,13 +292,20 @@ const ProductDetails = () => {
         </View>
 
         <TouchableOpacity
-          style={styles.cartButton}
+          style={[styles.cartButton, isLoading && styles.cartButtonDisabled]}
           disabled={isLoading}
           onPress={handleAddToCart}
         >
-          <Text style={styles.cartText}>Add to Cart</Text>
+          {isLoading ? (
+            <Text style={styles.cartText}>Adding...</Text>
+          ) : (
+            <Text style={styles.cartText}>Add to Cart</Text>
+          )}
         </TouchableOpacity>
       </View>
+
+      {/* Toast Component */}
+      <Toast />
     </SafeAreaProvider>
   );
 };
@@ -311,9 +340,7 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     borderWidth: 2,
     borderColor: "transparent",
-    // backgroundColor: "#fff",
     overflow: "hidden",
-    // padding: 4,
   },
   selectedThumbnail: {
     borderColor: "#FF6B00",
@@ -379,30 +406,6 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: "#E5E7EB",
     marginVertical: 16,
-  },
-  featuresContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 16,
-  },
-  featureItem: {
-    alignItems: "center",
-    flex: 1,
-  },
-  featureIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#FFF7ED",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 8,
-  },
-  featureLabel: {
-    fontSize: 11,
-    color: "#6B7280",
-    fontWeight: "600",
-    textAlign: "center",
   },
   tabContainer: {
     flexDirection: "row",
@@ -509,20 +512,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#FF6B00",
   },
-  recommendedRating: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: "#FFF7ED",
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
-  },
-  recommendedRatingText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#111",
-  },
   cartRow: {
     position: "absolute",
     bottom: 0,
@@ -566,6 +555,10 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
+  },
+  cartButtonDisabled: {
+    backgroundColor: "#FFA366",
+    opacity: 0.7,
   },
   cartText: {
     color: "#fff",

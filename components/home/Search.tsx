@@ -18,10 +18,11 @@ const styles = StyleSheet.create({
   },
 });
 
-const Search = () => {
+const Search = ({ onSearch }: { onSearch: (query: string) => void }) => {
   return (
     <View style={styles.container}>
       <TextInput
+        onChangeText={(e) => onSearch(e)}
         placeholderTextColor="#9CA3AF"
         placeholder="Search"
         style={styles.input}

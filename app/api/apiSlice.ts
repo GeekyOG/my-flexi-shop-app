@@ -39,6 +39,7 @@ export const api = createApi({
     "KYC",
     "Cart",
     "Wishlist",
+    "Address",
   ],
   endpoints: () => ({}),
 });

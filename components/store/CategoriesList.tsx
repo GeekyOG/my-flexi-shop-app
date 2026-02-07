@@ -7,7 +7,7 @@ export default function CategoryList({
   selectedCategory,
   onSelectCategory,
 }: {
-  categories: { name: string }[];
+  categories: { name: string; id: string }[];
   selectedCategory?: string;
   onSelectCategory?: (category: string) => void;
 }) {
@@ -18,10 +18,10 @@ export default function CategoryList({
       keyExtractor={(item, index) => index.toString()}
       renderItem={({ item }) => (
         <TouchableOpacity
-          onPress={() => onSelectCategory?.(item.name)}
+          onPress={() => onSelectCategory?.(item.id)}
           style={[
             storeStyles.categoryItem,
-            selectedCategory === item.name && {
+            selectedCategory === item.id && {
               backgroundColor: "#111827",
             },
           ]}
