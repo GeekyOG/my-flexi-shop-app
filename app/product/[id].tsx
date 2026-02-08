@@ -15,7 +15,7 @@ import {
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import Toast from "react-native-toast-message";
 import Icon from "react-native-vector-icons/Ionicons";
-import { useAddToCartMutation } from "../api/cartApi";
+import { useAddToCartMutation, useGetCartQuery } from "../api/cartApi";
 import { useGetProductQuery, useGetProductsQuery } from "../api/productsApi";
 
 const { width } = Dimensions.get("window");
@@ -84,10 +84,11 @@ const ProductDetails = () => {
   }, [product]);
 
   const vendor = product?.vendor;
+  const { data: cartData } = useGetCartQuery({});
 
   return (
-    <SafeAreaProvider>
-      <AppBar title="" cartCount={5} />
+    <SafeAreaProvider style={styles.safeArea}>
+      <AppBar title="" cartCount={cartData?.data?.itemCount ?? 0} />
 
       <ParallaxScrollView
         headerBackgroundColor={{ light: "#F8F9FB", dark: "#1D3D47" }}
@@ -313,6 +314,11 @@ const ProductDetails = () => {
 export default ProductDetails;
 
 const styles = StyleSheet.create({
+  safeArea: {
+    paddingTop: 16,
+    flex: 1,
+    backgroundColor: "#fff",
+  },
   scrollContent: {
     marginBottom: 90,
   },

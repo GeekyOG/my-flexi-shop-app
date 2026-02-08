@@ -13,8 +13,11 @@ export const removeItem = async (key: string) => {
   await AsyncStorage.removeItem(key);
 };
 
-export const formatCurrency = (n: number) =>
-  n.toLocaleString("en-US", {
+export const formatCurrency = (n: number) => {
+  if (Number.isNaN(n)) return "--";
+
+  return n.toLocaleString("en-US", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
+};

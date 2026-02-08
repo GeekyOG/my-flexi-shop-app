@@ -1,7 +1,7 @@
+import { getItem, removeItem, setItem } from "@/utils/storage";
 import { useRouter } from "expo-router";
-import React, { createContext, useContext, useState } from "react";
+import React, { createContext, useContext, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { removeItem } from "../utils/storage";
 import { logout as logoutAction, setCredentials } from "./authSlice";
 import type { RootState } from "./index";
 
@@ -41,21 +41,36 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const router = useRouter();
 
+  // Load saved credentials on mount
+  useEffect(() => {
+    const load = async () => {
+      const savedUser = await getItem("user");
+      const savedToken = await getItem("token");
+      if (savedToken && savedUser) {
+        dispatch(setCredentials({ user: savedUser, token: savedToken }));
+      }
+    };
+    load();
+  }, [dispatch]);
+
   const login = (token: string, user: User) => {
-    // Redux persist will handle storage automatically
+    // Save to storage
+    setItem("user", user);
+    setItem("token", token);
+
+    // Update Redux store
     dispatch(setCredentials({ user, token }));
     setIsGuest(false);
   };
 
   const logout = async () => {
     try {
-      // Clean up old storage keys if they exist
       await removeItem("user");
       await removeItem("token");
     } catch (err) {
-      console.warn("Failed to clear old storage during logout:", err);
+      console.warn("Failed to clear storage during logout:", err);
     } finally {
-      // Clear Redux store (redux-persist will handle clearing persisted data)
+      // Clear Redux store
       dispatch(logoutAction());
       setIsGuest(true);
       router.replace("/");
@@ -70,6 +85,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const setUser = (newUser: User | null) => {
     if (newUser && token) {
       dispatch(setCredentials({ user: newUser, token }));
+      setItem("user", newUser);
     }
   };
 

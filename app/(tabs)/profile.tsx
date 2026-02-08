@@ -1,8 +1,10 @@
 import RenderMenuItem from "@/components/profile/menuItems";
-import { useAuth } from "@/context/authContext";
+import { useAuth } from "@/context/authProvider";
 import { Ionicons } from "@expo/vector-icons";
 import { Redirect } from "expo-router";
 import React, { useState } from "react";
+
+import { logout } from "@/context/authSlice";
 import {
   Alert,
   Dimensions,
@@ -20,7 +22,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 const { width } = Dimensions.get("window");
 
 const Profile = () => {
-  const { token, user, logout } = useAuth();
+  const { token } = useAuth();
 
   console.log(token);
 
@@ -371,6 +373,7 @@ export default Profile;
 
 const styles = StyleSheet.create({
   container: {
+    paddingTop: 16,
     flex: 1,
     backgroundColor: "#F9FAFB",
   },

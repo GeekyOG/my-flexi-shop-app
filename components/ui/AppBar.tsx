@@ -25,7 +25,12 @@ const AppBar = ({ title, cartCount = 0 }: AppBarProps) => {
         style={styles.iconButton}
         onPress={() => navigation.goBack()}
       >
-        <Icon name="chevron-back" size={26} color="#111" />
+        <Icon
+          onPress={() => navigation.goBack()}
+          name="chevron-back"
+          size={26}
+          color="#111"
+        />
       </TouchableOpacity>
 
       {/* Title */}

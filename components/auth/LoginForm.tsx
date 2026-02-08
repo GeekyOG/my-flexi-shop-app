@@ -1,5 +1,6 @@
 import { useLoginCustomerMutation } from "@/app/api/authApi";
-import { useAuth } from "@/context/authContext";
+// import { useAuth } from "@/context/authContext";
+import { useAuth } from "@/context/authProvider";
 import { Link, useRouter } from "expo-router";
 import { Formik } from "formik";
 import React from "react";
@@ -71,7 +72,7 @@ const styles = StyleSheet.create({
 const LoginForm = () => {
   const { login, skip, user, token } = useAuth();
 
-  console.log(user, token);
+  console.log(token);
 
   const router = useRouter();
   const [loginCustomer, { isLoading, error }] = useLoginCustomerMutation();

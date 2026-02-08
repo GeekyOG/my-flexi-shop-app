@@ -13,14 +13,16 @@ import {
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
+import { ActivityIndicator, View } from "react-native";
 import { Provider as PaperProvider } from "react-native-paper";
 import "react-native-reanimated";
 import { Provider } from "react-redux";
-import { AuthProvider } from "../context/authContext";
+import { PersistGate } from "redux-persist/integration/react";
+import { persistor, store } from "../context";
+import { AuthProvider } from "../context/authProvider";
 import "../global.css";
 import OnboardingScreen from "./onboradering/page";
 import SplashScreen from "./splash/page";
-import { store } from "./store";
 import { initializeAuth } from "./store/slices/authSlice";
 
 export default function RootLayout() {
@@ -63,26 +65,40 @@ export default function RootLayout() {
 
   // ✅ Normal app flow
   return (
-    <AuthProvider>
-      <Provider store={store}>
-        <PaperProvider>
-          <ThemeProvider
-            value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+    <Provider store={store}>
+      <PersistGate
+        loading={
+          <View
+            style={{ flex: 1, justifyContent: "center", alignItems: "center" }}
           >
-            <Stack>
-              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-              <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-              <Stack.Screen
-                name="product/[id]"
-                options={{ headerShown: false }}
-              />
-              <Stack.Screen name="checkout" options={{ headerShown: false }} />
-              <Stack.Screen name="+not-found" />
-            </Stack>
-            <StatusBar style="auto" />
-          </ThemeProvider>
-        </PaperProvider>
-      </Provider>
-    </AuthProvider>
+            <ActivityIndicator size="large" />
+          </View>
+        }
+        persistor={persistor}
+      >
+        <AuthProvider>
+          <PaperProvider>
+            <ThemeProvider
+              value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+            >
+              <Stack>
+                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+                <Stack.Screen
+                  name="product/[id]"
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen
+                  name="checkout"
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen name="+not-found" />
+              </Stack>
+              <StatusBar style="auto" />
+            </ThemeProvider>
+          </PaperProvider>
+        </AuthProvider>
+      </PersistGate>
+    </Provider>
   );
 }

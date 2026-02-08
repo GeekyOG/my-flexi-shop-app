@@ -5,6 +5,7 @@ import HorizontalProductListSection from "@/components/ui/HorizontalProductListS
 import ScrollableProductSection from "@/components/ui/ScrollableProductSection";
 import { Image } from "expo-image";
 
+import { useState } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 import { useGetCategoriesQuery } from "../api/categoriesApi";
 import {
@@ -40,6 +41,8 @@ const styles = StyleSheet.create({
 });
 
 export default function Home() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [pageSize, setPageSize] = useState(12);
   // Fetch categories
   const { data: categoriesData } = useGetCategoriesQuery({
     page: 1,
@@ -57,11 +60,16 @@ export default function Home() {
   const displayMostViewedProducts = mostViewedData?.data || [];
   const displayCategories = categoriesData?.items || [];
 
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    setPageSize(12); // Reset page size on search
+  };
+
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: "#A1CEDC", dark: "#1D3D47" }}
     >
-      <Search />
+      <Search onSearch={handleSearch} />
       <Banners />
       <View style={styles.row}>
         <View style={styles.infoBox}>
