@@ -486,7 +486,7 @@ export default function AddressScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: "#fff" },
-  container: { flex: 1, padding: 16 },
+  container: { flex: 1, padding: 0 },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",

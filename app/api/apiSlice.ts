@@ -1,6 +1,7 @@
 import type { BaseQueryFn, FetchBaseQueryError } from "@reduxjs/toolkit/query";
 import type { FetchArgs } from "@reduxjs/toolkit/query/react";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+import { router } from "expo-router";
 
 const baseUrl = "https://flexi.aoudit.com/api/v1";
 // const baseUrl = "http://localhost:8000/api/v1";
@@ -42,7 +43,7 @@ const baseQueryWithReauth: BaseQueryFn<
     // Clear auth state
     api.dispatch({ type: "auth/logout" });
 
-    // router.replace("/login");
+    router.replace("/login");
 
     console.log("🔒 Unauthorized - redirecting to login");
   }

@@ -1,11 +1,12 @@
 import { Image } from "expo-image";
-import { useNavigation } from "expo-router";
+import { Link, useNavigation } from "expo-router";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome";
 
 interface AppBarProps {
   title: string;
+  backAction?: boolean;
 }
 
 const styles = StyleSheet.create({
@@ -29,17 +30,25 @@ const styles = StyleSheet.create({
   },
 });
 
-const AppBar = ({ title }: AppBarProps) => {
+const AppBar = ({ title, backAction }: AppBarProps) => {
   const navigation = useNavigation();
 
   return (
     <View style={styles.container}>
-      <Icon
-        name="chevron-left"
-        size={16}
-        color="#000"
-        onPress={() => navigation.goBack()}
-      />
+      {backAction ? (
+        <Link href="/(tabs)">
+          <Icon name="chevron-left" size={24} color="#000" />
+        </Link>
+      ) : (
+        <Icon
+          name="chevron-left"
+          size={24}
+          color="#000"
+          onPress={() => {
+            navigation.goBack();
+          }}
+        />
+      )}
       <View style={styles.logoContainer}>
         <Image
           source={require("../../assets/images/LOGO.png")}

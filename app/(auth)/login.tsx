@@ -32,7 +32,7 @@ function Login() {
     >
       <View style={styles.container}>
         <View>
-          <AppBar title="Login" />
+          <AppBar title="Login" backAction />
           <View style={styles.inner}>
             <LoginForm />
             <Link href="/(auth)/register" style={styles.link}>

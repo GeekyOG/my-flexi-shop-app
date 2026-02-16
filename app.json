@@ -12,7 +12,9 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSLocalNetworkUsageDescription": "This app requires local network access to connect to your server",
-        "NSBonjourServices": ["_http._tcp"],
+        "NSBonjourServices": [
+          "_http._tcp"
+        ],
         "NSExceptionDomains": {
           "localhost": {
             "NSIncludesSubdomains": false,
@@ -33,7 +35,9 @@
       },
       "edgeToEdgeEnabled": true,
       "usesCleartextTraffic": true,
-      "permissions": ["android.permission.INTERNET"]
+      "permissions": [
+        "android.permission.INTERNET"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -55,6 +59,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "a046093e-2878-49b2-9144-faf51a604fb4"
+      }
     }
   }
 }

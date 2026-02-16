@@ -115,15 +115,16 @@ const CartScreen = () => {
         ) : (
           <>
             {cartItems?.map((item: any) => (
-              <TouchableOpacity
-                onPress={() => router.push(`/product/${item.product.id}`)}
-                key={item.id}
-                style={styles.card}
-              >
-                <Image
-                  source={`https://flexi.aoudit.com/api/v1/product-images/product/${item.product?.id}/display`}
-                  style={styles.image}
-                />
+              <TouchableOpacity key={item.id} style={styles.card}>
+                <TouchableOpacity
+                  onPress={() => router.push(`/product/${item.product.id}`)}
+                >
+                  <Image
+                    source={`https://flexi.aoudit.com/api/v1/product-images/product/${item.product?.id}/display`}
+                    style={styles.image}
+                  />
+                </TouchableOpacity>
+
                 <View style={styles.info}>
                   <Text style={styles.name}>{item.product.name}</Text>
                   <Text style={styles.category}>

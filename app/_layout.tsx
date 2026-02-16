@@ -16,6 +16,7 @@ import { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { Provider as PaperProvider } from "react-native-paper";
 import "react-native-reanimated";
+import Toast from "react-native-toast-message";
 import { Provider } from "react-redux";
 import { PersistGate } from "redux-persist/integration/react";
 import { persistor, store } from "../context";
@@ -85,6 +86,10 @@ export default function RootLayout() {
                 <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                 <Stack.Screen name="(auth)" options={{ headerShown: false }} />
                 <Stack.Screen
+                  name="(profile)"
+                  options={{ headerShown: false }}
+                />
+                <Stack.Screen
                   name="product/[id]"
                   options={{ headerShown: false }}
                 />
@@ -99,6 +104,7 @@ export default function RootLayout() {
           </PaperProvider>
         </AuthProvider>
       </PersistGate>
+      <Toast />
     </Provider>
   );
 }

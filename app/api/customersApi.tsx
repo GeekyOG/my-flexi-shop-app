@@ -18,6 +18,25 @@ export const customersApi = api.injectEndpoints({
       query: (id) => `/customers/${id}`,
       providesTags: (result, error, id) => [{ type: "Customers", id }],
     }),
+    getMyProfile: builder.query({
+      query: () => "/customers/me",
+      providesTags: ["Customers"],
+    }),
+    updateMyProfile: builder.mutation({
+      query: (data) => ({
+        url: "/customers/me",
+        method: "PUT",
+        body: data,
+      }),
+      invalidatesTags: ["Customers"],
+    }),
+    deleteMyAccount: builder.mutation({
+      query: () => ({
+        url: "/customers/me",
+        method: "DELETE",
+      }),
+      invalidatesTags: ["Customers"],
+    }),
     createCustomer: builder.mutation({
       query: (data) => ({
         url: "/customers/register",
@@ -84,6 +103,9 @@ export const customersApi = api.injectEndpoints({
 export const {
   useGetCustomersQuery,
   useGetCustomerQuery,
+  useGetMyProfileQuery,
+  useUpdateMyProfileMutation,
+  useDeleteMyAccountMutation,
   useCreateCustomerMutation,
   useUpdateCustomerMutation,
   useDeleteCustomerMutation,

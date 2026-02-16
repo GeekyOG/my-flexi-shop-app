@@ -1,7 +1,9 @@
+// store/api/kycApi.ts
 import { api } from "./apiSlice";
 
 export const kycApi = api.injectEndpoints({
   endpoints: (builder) => ({
+    // Get all KYCs (Admin)
     getKycs: builder.query({
       query: ({ page = 1, size = 20, search = "", status }) => {
         const params = new URLSearchParams({
@@ -14,23 +16,83 @@ export const kycApi = api.injectEndpoints({
       },
       providesTags: ["KYC"],
     }),
+
+    // Get single KYC (Admin)
     getKyc: builder.query({
-      query: (id) => `/kyc/${id}`,
+      query: (id) => `/kyc/${id}?includeImageData=false`,
       providesTags: (result, error, id) => [{ type: "KYC", id }],
     }),
+
+    // Get KYC image (Admin)
+    getKycImage: builder.query({
+      query: (id) => ({
+        url: `/kyc/${id}/image`,
+        responseHandler: (response) => response.blob(),
+      }),
+      providesTags: (result, error, id) => [{ type: "KYC", id: `${id}-image` }],
+    }),
+
+    // Get my KYC (Customer)
+    getMyKyc: builder.query({
+      query: () => `/kyc/my-kyc`,
+      providesTags: ["MyKYC"],
+    }),
+
+    // Get my KYC image (Customer)
+    getMyKycImage: builder.query({
+      query: () => ({
+        url: `/kyc/my-kyc/image`,
+        responseHandler: (response) => response.blob(),
+      }),
+      providesTags: ["MyKYCImage"],
+    }),
+
+    // Submit KYC (Customer)
+    submitKyc: builder.mutation({
+      query: (formData) => ({
+        url: `/kyc/submit`,
+        method: "POST",
+        body: formData,
+      }),
+      invalidatesTags: ["MyKYC", "MyKYCImage", "KYC"],
+    }),
+
+    // Update KYC (Customer - resubmit)
+    updateKyc: builder.mutation({
+      query: ({ id, formData }) => ({
+        url: `/kyc/${id}`,
+        method: "PUT",
+        body: formData,
+      }),
+      invalidatesTags: ["MyKYC", "MyKYCImage", "KYC"],
+    }),
+
+    // Approve KYC (Admin)
     approveKyc: builder.mutation({
       query: (id) => ({
         url: `/kyc/${id}/approve`,
-        method: "PATCH",
+        method: "PUT",
       }),
-      invalidatesTags: ["KYC", "Customers"],
+      invalidatesTags: ["KYC", "Customers", "MyKYC"],
     }),
+
+    // Reject KYC (Admin)
     rejectKyc: builder.mutation({
-      query: (id) => ({
+      query: ({ id, reason }) => ({
         url: `/kyc/${id}/reject`,
-        method: "PATCH",
+        method: "PUT",
+        body: { reason },
       }),
-      invalidatesTags: ["KYC", "Customers"],
+      invalidatesTags: ["KYC", "Customers", "MyKYC"],
+    }),
+
+    // Delete KYC (Admin)
+    deleteKyc: builder.mutation({
+      query: (id) => ({
+        url: `/kyc/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: ["KYC"],
     }),
   }),
 });
@@ -38,6 +100,12 @@ export const kycApi = api.injectEndpoints({
 export const {
   useGetKycsQuery,
   useGetKycQuery,
+  useGetKycImageQuery,
+  useGetMyKycQuery,
+  useGetMyKycImageQuery,
+  useSubmitKycMutation,
+  useUpdateKycMutation,
   useApproveKycMutation,
   useRejectKycMutation,
+  useDeleteKycMutation,
 } = kycApi;
