@@ -1,326 +1,710 @@
 // components/kyc/KycDetails.tsx
 import { useGetMyKycQuery } from "@/app/api/kycApi";
+import { useAuth } from "@/context/authProvider";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
+  Dimensions,
   Image,
   Modal,
+  Platform,
+  Pressable,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import KycStatusBadge from "./kycStatusBadge";
 
-const KycDetails = () => {
-  const { data, isLoading, error } = useGetMyKycQuery({});
-  const [showImageModal, setShowImageModal] = useState(false);
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+const { width: SCREEN_W } = Dimensions.get("window");
 
-  React.useEffect(() => {
-    if (data?.data) {
-      // Create image URL from API endpoint
-      const url = `${process.env.EXPO_PUBLIC_API_URL}/kyc/my-kyc/image`;
-      setImageUrl(url);
-    }
-  }, [data]);
+// ── Helpers ──────────────────────────────────────────────────
+
+const formatDate = (iso: string) =>
+  new Date(iso).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+const formatDocType = (raw?: string) => {
+  if (!raw) return "Not specified";
+  return raw.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+};
+
+// ── Status config ─────────────────────────────────────────────
+
+const STATUS_CONFIG = {
+  pending: {
+    icon: "time-outline" as const,
+    color: "#B45309",
+    bg: "#FFFBEB",
+    border: "#FDE68A",
+    label: "Under Review",
+    message:
+      "We're reviewing your documents and will notify you once complete.",
+  },
+  approved: {
+    icon: "shield-checkmark-outline" as const,
+    color: "#065F46",
+    bg: "#ECFDF5",
+    border: "#A7F3D0",
+    label: "Verified",
+    message: "Your identity has been successfully verified.",
+  },
+  rejected: {
+    icon: "close-circle-outline" as const,
+    color: "#991B1B",
+    bg: "#FEF2F2",
+    border: "#FECACA",
+    label: "Rejected",
+    message:
+      "Your submission was not accepted. Please resubmit with a clearer document.",
+  },
+};
+
+// ── Info row ─────────────────────────────────────────────────
+
+const InfoRow = ({
+  label,
+  value,
+  last = false,
+}: {
+  label: string;
+  value: string;
+  last?: boolean;
+}) => (
+  <View style={[styles.infoRow, last && { borderBottomWidth: 0 }]}>
+    <Text style={styles.infoLabel}>{label}</Text>
+    <Text style={styles.infoValue}>{value}</Text>
+  </View>
+);
+
+// ── Main ─────────────────────────────────────────────────────
+
+const KycDetails = () => {
+  // Pull auth token to attach to image request
+  const { token } = useAuth();
+
+  const { data, isLoading, error, refetch } = useGetMyKycQuery({});
+  const [modalVisible, setModalVisible] = useState(false);
+  const [imageError, setImageError] = useState(false);
+
+  const kyc = data?.data;
+
+  // Build authenticated image URI
+  const imageUri = kyc ? `http://192.168.1.122:8000/api/v1/kyc/me/image` : null;
+  console.log(kyc, imageUri);
+
+  const imageHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+
+  // ── Loading ────────────────────────────────────────────────
 
   if (isLoading) {
     return (
-      <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#111827" />
-      </View>
+      <SafeAreaView
+        style={styles.safeArea}
+        edges={["top", "bottom", "left", "right"]}
+      >
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color="#111827" />
+          <Text style={styles.loadingText}>Loading your KYC details…</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
-  if (error || !data?.data) {
+  // ── Empty / Error ──────────────────────────────────────────
+
+  if (error || !kyc) {
     return (
-      <View style={styles.centerContainer}>
-        <Ionicons name="document-outline" size={64} color="#D1D5DB" />
-        <Text style={styles.emptyText}>No KYC submission found</Text>
-        <Text style={styles.emptySubtext}>
-          Please submit your KYC documents for verification
-        </Text>
-      </View>
+      <SafeAreaView
+        style={styles.safeArea}
+        edges={["top", "bottom", "left", "right"]}
+      >
+        <View style={styles.centered}>
+          <View style={styles.emptyIconWrap}>
+            <Ionicons name="document-text-outline" size={40} color="#9CA3AF" />
+          </View>
+          <Text style={styles.emptyTitle}>No KYC Found</Text>
+          <Text style={styles.emptySubtitle}>
+            Submit your identity documents to get verified.
+          </Text>
+          {error && (
+            <TouchableOpacity style={styles.retryButton} onPress={refetch}>
+              <Ionicons name="refresh" size={16} color="#FFFFFF" />
+              <Text style={styles.retryText}>Try again</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      </SafeAreaView>
     );
   }
 
-  const kyc = data.data;
+  const cfg = STATUS_CONFIG[kyc.status as keyof typeof STATUS_CONFIG];
+  const showUpdated = kyc.updatedAt && kyc.updatedAt !== kyc.createdAt;
 
   return (
-    <ScrollView style={styles.container}>
-      <View style={styles.card}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>KYC Details</Text>
+    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+      <StatusBar barStyle="dark-content" />
+
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* ── Page heading ──────────────────────────────── */}
+        <View style={styles.pageHeader}>
+          <Text style={styles.pageTitle}>KYC Details</Text>
           <KycStatusBadge status={kyc.status} size="medium" />
         </View>
 
-        {/* Document Info */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Document Information</Text>
-
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Document Type:</Text>
-            <Text style={styles.infoValue}>
-              {kyc.docType || "Not specified"}
+        {/* ── Status banner ─────────────────────────────── */}
+        <View
+          style={[
+            styles.banner,
+            { backgroundColor: cfg.bg, borderColor: cfg.border },
+          ]}
+        >
+          <View
+            style={[styles.bannerIconWrap, { backgroundColor: cfg.border }]}
+          >
+            <Ionicons name={cfg.icon} size={20} color={cfg.color} />
+          </View>
+          <View style={styles.bannerText}>
+            <Text style={[styles.bannerLabel, { color: cfg.color }]}>
+              {cfg.label}
+            </Text>
+            <Text style={[styles.bannerMessage, { color: cfg.color }]}>
+              {cfg.message}
             </Text>
           </View>
+        </View>
 
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Submitted:</Text>
-            <Text style={styles.infoValue}>
-              {new Date(kyc.createdAt).toLocaleDateString("en-US", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
-            </Text>
+        {/* ── Document info card ────────────────────────── */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Ionicons name="document-text-outline" size={18} color="#6B7280" />
+            <Text style={styles.cardTitle}>Document Information</Text>
           </View>
 
-          {kyc.updatedAt !== kyc.createdAt && (
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Last Updated:</Text>
-              <Text style={styles.infoValue}>
-                {new Date(kyc.updatedAt).toLocaleDateString("en-US", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
-              </Text>
-            </View>
+          <InfoRow label="Document Type" value={formatDocType(kyc.docType)} />
+          <InfoRow label="File Name" value={kyc.doc ?? "—"} />
+          <InfoRow label="Submitted" value={formatDate(kyc.createdAt)} />
+          {showUpdated && (
+            <InfoRow
+              label="Last Updated"
+              value={formatDate(kyc.updatedAt)}
+              last
+            />
+          )}
+          {!showUpdated && (
+            <InfoRow
+              label="KYC ID"
+              value={`#${String(kyc.id).padStart(6, "0")}`}
+              last
+            />
           )}
         </View>
 
-        {/* Document Preview */}
-        {imageUrl && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Document Preview</Text>
+        {/* ── Document preview card ─────────────────────── */}
+        {imageUri && !imageError && (
+          <View style={styles.card}>
+            <View style={styles.cardHeader}>
+              <Ionicons name="image-outline" size={18} color="#6B7280" />
+              <Text style={styles.cardTitle}>Document Preview</Text>
+            </View>
+
             <TouchableOpacity
+              activeOpacity={0.9}
+              onPress={() => setModalVisible(true)}
               style={styles.imageContainer}
-              onPress={() => setShowImageModal(true)}
             >
               <Image
-                source={{
-                  uri: imageUrl,
-                  headers: {
-                    // Add auth token if needed
-                  },
-                }}
+                source={{ uri: imageUri, headers: imageHeaders }}
                 style={styles.previewImage}
                 resizeMode="cover"
+                onError={() => setImageError(true)}
               />
+              {/* Gradient overlay */}
               <View style={styles.imageOverlay}>
-                <Ionicons name="expand-outline" size={24} color="#FFFFFF" />
-                <Text style={styles.imageOverlayText}>
-                  Tap to view full size
-                </Text>
+                <View style={styles.expandPill}>
+                  <Ionicons name="expand-outline" size={14} color="#FFFFFF" />
+                  <Text style={styles.expandText}>Tap to expand</Text>
+                </View>
               </View>
+            </TouchableOpacity>
+
+            <Text style={styles.imageHint}>
+              Pinch or zoom in the expanded view to inspect details.
+            </Text>
+          </View>
+        )}
+
+        {/* image error fallback */}
+        {imageError && (
+          <View style={[styles.card, styles.imageErrorCard]}>
+            <Ionicons name="image-outline" size={32} color="#D1D5DB" />
+            <Text style={styles.imageErrorText}>
+              Could not load document image
+            </Text>
+            <TouchableOpacity
+              onPress={() => setImageError(false)}
+              style={styles.retryLink}
+            >
+              <Text style={styles.retryLinkText}>Retry</Text>
             </TouchableOpacity>
           </View>
         )}
 
-        {/* Status Message */}
-        {kyc.status === "pending" && (
-          <View style={styles.statusMessage}>
-            <Ionicons name="time-outline" size={20} color="#D97706" />
-            <Text style={styles.statusMessageText}>
-              Your KYC is under review. You'll be notified once it's verified.
-            </Text>
+        {/* ── Timeline ──────────────────────────────────── */}
+        <View style={styles.card}>
+          <View style={styles.cardHeader}>
+            <Ionicons name="git-branch-outline" size={18} color="#6B7280" />
+            <Text style={styles.cardTitle}>Timeline</Text>
           </View>
-        )}
 
-        {kyc.status === "approved" && (
-          <View style={[styles.statusMessage, styles.successMessage]}>
-            <Ionicons
-              name="checkmark-circle-outline"
-              size={20}
-              color="#059669"
+          <TimelineStep
+            icon="cloud-upload-outline"
+            label="Submitted"
+            date={formatDate(kyc.createdAt)}
+            active
+          />
+          <TimelineStep
+            icon="eye-outline"
+            label="Under Review"
+            date={
+              kyc.status !== "pending" ? formatDate(kyc.updatedAt) : undefined
+            }
+            active={kyc.status !== "pending"}
+            pending={kyc.status === "pending"}
+            last={kyc.status === "pending"}
+          />
+          {kyc.status !== "pending" && (
+            <TimelineStep
+              icon={
+                kyc.status === "approved"
+                  ? "shield-checkmark-outline"
+                  : "close-circle-outline"
+              }
+              label={kyc.status === "approved" ? "Approved" : "Rejected"}
+              date={formatDate(kyc.updatedAt)}
+              active={true}
+              accent={kyc.status === "approved" ? "#059669" : "#DC2626"}
+              last
             />
-            <Text style={[styles.statusMessageText, styles.successText]}>
-              Your KYC has been verified successfully!
-            </Text>
-          </View>
-        )}
+          )}
+        </View>
+      </ScrollView>
 
-        {kyc.status === "rejected" && (
-          <View style={[styles.statusMessage, styles.errorMessage]}>
-            <Ionicons name="close-circle-outline" size={20} color="#DC2626" />
-            <Text style={[styles.statusMessageText, styles.errorText]}>
-              Your KYC was rejected. Please resubmit with correct documents.
-            </Text>
-          </View>
-        )}
-      </View>
-
-      {/* Image Modal */}
+      {/* ── Full-screen image modal ───────────────────────── */}
       <Modal
-        visible={showImageModal}
-        transparent={true}
+        visible={modalVisible}
+        transparent
         animationType="fade"
-        onRequestClose={() => setShowImageModal(false)}
+        statusBarTranslucent
+        onRequestClose={() => setModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <TouchableOpacity
+        <View style={styles.modalBg}>
+          <Pressable
             style={styles.modalClose}
-            onPress={() => setShowImageModal(false)}
+            onPress={() => setModalVisible(false)}
+            hitSlop={16}
           >
-            <Ionicons name="close" size={32} color="#FFFFFF" />
-          </TouchableOpacity>
-          {imageUrl && (
+            <View style={styles.modalCloseIcon}>
+              <Ionicons name="close" size={22} color="#FFFFFF" />
+            </View>
+          </Pressable>
+
+          {imageUri && (
             <Image
-              source={{ uri: imageUrl }}
+              source={{ uri: imageUri, headers: imageHeaders }}
               style={styles.fullImage}
               resizeMode="contain"
             />
           )}
+
+          <Text style={styles.modalHint}>Pinch to zoom</Text>
         </View>
       </Modal>
-    </ScrollView>
+    </SafeAreaView>
   );
 };
 
+// ── Timeline step ─────────────────────────────────────────────
+
+const TimelineStep = ({
+  icon,
+  label,
+  date,
+  active = false,
+  pending = false,
+  accent,
+  last = false,
+}: {
+  icon: React.ComponentProps<typeof Ionicons>["name"];
+  label: string;
+  date?: string;
+  active?: boolean;
+  pending?: boolean;
+  accent?: string;
+  last?: boolean;
+}) => {
+  const dotColor = accent ?? (active ? "#111827" : "#D1D5DB");
+
+  return (
+    <View style={styles.timelineRow}>
+      {/* Line + dot */}
+      <View style={styles.timelineLeft}>
+        <View style={[styles.timelineDot, { backgroundColor: dotColor }]}>
+          {pending ? (
+            <ActivityIndicator size={10} color="#FFFFFF" />
+          ) : (
+            <Ionicons
+              name={icon}
+              size={11}
+              color={active ? "#FFFFFF" : "#9CA3AF"}
+            />
+          )}
+        </View>
+        {!last && (
+          <View
+            style={[
+              styles.timelineLine,
+              active && { backgroundColor: "#111827" },
+            ]}
+          />
+        )}
+      </View>
+
+      {/* Content */}
+      <View style={styles.timelineContent}>
+        <Text
+          style={[
+            styles.timelineLabel,
+            !active && styles.timelineLabelInactive,
+          ]}
+        >
+          {label}
+        </Text>
+        {date ? (
+          <Text style={styles.timelineDate}>{date}</Text>
+        ) : pending ? (
+          <Text style={styles.timelinePending}>In progress…</Text>
+        ) : null}
+      </View>
+    </View>
+  );
+};
+
+// ── Styles ────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
-    backgroundColor: "#F9FAFB",
+    backgroundColor: "#F3F4F6",
   },
-  centerContainer: {
+  centered: {
     flex: 1,
+    backgroundColor: "#F3F4F6",
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
+    padding: 32,
+    gap: 12,
   },
-  card: {
-    backgroundColor: "#FFFFFF",
-    margin: 20,
-    borderRadius: 20,
-    padding: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
+
+  // ── Loading / empty ──────────────────────────────
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: "#9CA3AF",
   },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+  emptyIconWrap: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: "#F3F4F6",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    justifyContent: "center",
     alignItems: "center",
-    marginBottom: 24,
+    marginBottom: 4,
   },
-  title: {
-    fontSize: 24,
+  emptyTitle: {
+    fontSize: 18,
     fontWeight: "700",
     color: "#111827",
   },
-  section: {
-    marginBottom: 24,
+  emptySubtitle: {
+    fontSize: 14,
+    color: "#9CA3AF",
+    textAlign: "center",
+    lineHeight: 22,
   },
-  sectionTitle: {
-    fontSize: 16,
+  retryButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#111827",
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 10,
+    gap: 8,
+    marginTop: 8,
+  },
+  retryText: {
+    color: "#FFFFFF",
+    fontSize: 14,
     fontWeight: "600",
-    color: "#374151",
-    marginBottom: 12,
   },
+
+  // ── Scroll ───────────────────────────────────────
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 20,
+    paddingBottom: 48,
+    gap: 16,
+  },
+
+  // ── Page header ──────────────────────────────────
+  pageHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  pageTitle: {
+    fontSize: 26,
+    fontWeight: "700",
+    color: "#111827",
+    letterSpacing: -0.5,
+  },
+
+  // ── Banner ───────────────────────────────────────
+  banner: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 16,
+    gap: 14,
+  },
+  bannerIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+    flexShrink: 0,
+  },
+  bannerText: {
+    flex: 1,
+    gap: 3,
+  },
+  bannerLabel: {
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  bannerMessage: {
+    fontSize: 13,
+    lineHeight: 20,
+    opacity: 0.85,
+  },
+
+  // ── Card ─────────────────────────────────────────
+  card: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 20,
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+      },
+      android: { elevation: 2 },
+    }),
+  },
+  cardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 16,
+  },
+  cardTitle: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#6B7280",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+
+  // ── Info rows ────────────────────────────────────
   infoRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    paddingVertical: 8,
-    borderBottomWidth: 1,
+    alignItems: "center",
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "#F3F4F6",
+    gap: 16,
   },
   infoLabel: {
     fontSize: 14,
-    color: "#6B7280",
+    color: "#9CA3AF",
+    flexShrink: 0,
   },
   infoValue: {
     fontSize: 14,
     fontWeight: "600",
     color: "#111827",
+    textAlign: "right",
+    flex: 1,
   },
+
+  // ── Image preview ────────────────────────────────
   imageContainer: {
-    position: "relative",
     borderRadius: 12,
     overflow: "hidden",
+    height: 210,
+    backgroundColor: "#F3F4F6",
   },
   previewImage: {
     width: "100%",
-    height: 200,
-    backgroundColor: "#F3F4F6",
+    height: "100%",
   },
   imageOverlay: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: "rgba(0, 0, 0, 0.6)",
-    padding: 12,
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: "flex-end",
+    alignItems: "center",
+    paddingBottom: 14,
+    // subtle gradient-like overlay via a semi-transparent bottom strip
+    backgroundImage: undefined, // not supported in RN, handled by the View below
+  },
+  expandPill: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 20,
+    gap: 6,
   },
-  imageOverlayText: {
+  expandText: {
     color: "#FFFFFF",
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "500",
   },
-  statusMessage: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FEF3C7",
-    padding: 16,
-    borderRadius: 12,
-    gap: 12,
-  },
-  statusMessageText: {
-    flex: 1,
-    fontSize: 14,
-    color: "#D97706",
-    lineHeight: 20,
-  },
-  successMessage: {
-    backgroundColor: "#D1FAE5",
-  },
-  successText: {
-    color: "#059669",
-  },
-  errorMessage: {
-    backgroundColor: "#FEE2E2",
-  },
-  errorText: {
-    color: "#DC2626",
-  },
-  emptyText: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#374151",
-    marginTop: 16,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: "#6B7280",
-    marginTop: 8,
+  imageHint: {
+    fontSize: 11,
+    color: "#9CA3AF",
+    marginTop: 10,
     textAlign: "center",
   },
-  modalOverlay: {
+  imageErrorCard: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 32,
+    gap: 8,
+  },
+  imageErrorText: {
+    fontSize: 13,
+    color: "#9CA3AF",
+  },
+  retryLink: {
+    paddingVertical: 4,
+  },
+  retryLinkText: {
+    fontSize: 13,
+    color: "#111827",
+    fontWeight: "600",
+    textDecorationLine: "underline",
+  },
+
+  // ── Timeline ─────────────────────────────────────
+  timelineRow: {
+    flexDirection: "row",
+    gap: 14,
+    minHeight: 52,
+  },
+  timelineLeft: {
+    alignItems: "center",
+    width: 24,
+  },
+  timelineDot: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 1,
+  },
+  timelineLine: {
     flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.95)",
+    width: 2,
+    backgroundColor: "#E5E7EB",
+    marginVertical: 4,
+  },
+  timelineContent: {
+    flex: 1,
+    paddingBottom: 16,
+    gap: 2,
+  },
+  timelineLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#111827",
+  },
+  timelineLabelInactive: {
+    color: "#D1D5DB",
+  },
+  timelineDate: {
+    fontSize: 12,
+    color: "#9CA3AF",
+  },
+  timelinePending: {
+    fontSize: 12,
+    color: "#D97706",
+    fontStyle: "italic",
+  },
+
+  // ── Modal ────────────────────────────────────────
+  modalBg: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.96)",
     justifyContent: "center",
     alignItems: "center",
   },
   modalClose: {
     position: "absolute",
-    top: 50,
+    top: Platform.OS === "ios" ? 56 : 36,
     right: 20,
     zIndex: 10,
-    padding: 10,
+  },
+  modalCloseIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.15)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   fullImage: {
-    width: "100%",
-    height: "100%",
+    width: SCREEN_W,
+    height: SCREEN_W * 1.4,
+  },
+  modalHint: {
+    position: "absolute",
+    bottom: 48,
+    fontSize: 12,
+    color: "rgba(255,255,255,0.4)",
+    letterSpacing: 0.5,
   },
 });
 

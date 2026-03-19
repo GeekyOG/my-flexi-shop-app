@@ -14,8 +14,6 @@ const AppBar = ({ title, cartCount = 0 }: AppBarProps) => {
 
   const { data: cart } = useGetCartQuery({});
 
-  console.log(cart, "cart");
-
   // comst;
 
   return (

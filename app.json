@@ -12,9 +12,7 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSLocalNetworkUsageDescription": "This app requires local network access to connect to your server",
-        "NSBonjourServices": [
-          "_http._tcp"
-        ],
+        "NSBonjourServices": ["_http._tcp"],
         "NSExceptionDomains": {
           "localhost": {
             "NSIncludesSubdomains": false,
@@ -34,10 +32,8 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "usesCleartextTraffic": true,
-      "permissions": [
-        "android.permission.INTERNET"
-      ]
+      "permissions": ["android.permission.INTERNET"],
+      "package": "com.oghomena.my_flexi_shop"
     },
     "web": {
       "bundler": "metro",
@@ -49,7 +45,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/sLOGO.png",
+          "image": "./assets/images/LOGO.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"

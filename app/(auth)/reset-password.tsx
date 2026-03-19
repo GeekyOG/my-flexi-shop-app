@@ -1,15 +1,22 @@
 import AppBar from "@/components/auth/AppBar";
 import ResetPasswordForm from "@/components/auth/ResetPasswordForm";
 import ParallaxScrollView from "@/components/ParallaxScrollView";
+import { Link } from "expo-router";
 import React from "react";
-import { Dimensions, StyleSheet, View } from "react-native";
+import {
+  Dimensions,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 const { height } = Dimensions.get("window");
 const styles = StyleSheet.create({
   container: {
     justifyContent: "space-between",
     flex: 1,
-    height: height,
+    height: height - 250,
   },
   inner: {
     marginTop: 24,
@@ -31,7 +38,7 @@ const styles = StyleSheet.create({
   },
 });
 
-const ForgotPassword = () => {
+const ResetPassword = () => {
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: "#A1CEDC", dark: "#1D3D47" }}
@@ -41,6 +48,11 @@ const ForgotPassword = () => {
           <AppBar title="Forgot Password" />
           <View style={styles.inner}>
             <ResetPasswordForm />
+            <Link href="/(auth)/register" style={styles.link}>
+              <TouchableOpacity>
+                <Text style={{ color: "#33718D" }}>Create Account</Text>
+              </TouchableOpacity>
+            </Link>
           </View>
         </View>
       </View>
@@ -48,4 +60,4 @@ const ForgotPassword = () => {
   );
 };
 
-export default ForgotPassword;
+export default ResetPassword;

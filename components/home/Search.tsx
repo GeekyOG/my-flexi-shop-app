@@ -15,6 +15,7 @@ const styles = StyleSheet.create({
   input: {
     width: "90%",
     paddingVertical: 12,
+    color: "#000000",
   },
 });
 

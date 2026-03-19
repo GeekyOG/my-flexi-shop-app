@@ -1,527 +1,566 @@
-import React, { useState } from "react";
+// app/(tabs)/saved.tsx
+import { formatCurrency } from "@/utils/storage";
+import { Ionicons } from "@expo/vector-icons";
+import { Image } from "expo-image";
+import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Dimensions,
   FlatList,
-  Image,
-  SafeAreaView,
+  Platform,
+  RefreshControl,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+
 import {
   useGetWishlistQuery,
   useMoveToCartMutation,
   useRemoveFromWishlistMutation,
 } from "../api/wishlistApi";
 
-const { width } = Dimensions.get("window");
-const CARD_PADDING = 16;
-const CARD_GAP = 12;
+// ── Constants ─────────────────────────────────────────────────
+
+const { width: SCREEN_W } = Dimensions.get("window");
+const H_PAD = 16;
+const COL_GAP = 10;
+// Always 2-column grid on mobile; 3 on tablet
+const NUM_COLS = SCREEN_W >= 768 ? 3 : 2;
+const CARD_W = (SCREEN_W - H_PAD * 2 - COL_GAP * (NUM_COLS - 1)) / NUM_COLS;
+
+const IMAGE_BASE = "https://flexi.aoudit.com/api/v1/product-images";
+
+// ── Types ─────────────────────────────────────────────────────
 
 interface WishlistItem {
   id: string;
-  name: string;
-  category?: string;
-  price: number;
-  image?: string;
-  [key: string]: any;
+  savedDate?: string;
+  product: {
+    id: string;
+    name: string;
+    price: number;
+    category?: { name: string };
+  };
 }
 
-// Calculate card width based on screen size
-const getCardWidth = () => {
-  if (width < 768) return width - CARD_PADDING * 2; // Mobile: 1 column
-  if (width < 1024) return (width - CARD_PADDING * 2 - CARD_GAP) / 2; // Tablet: 2 columns
-  return (width - CARD_PADDING * 2 - CARD_GAP * 2) / 3; // Desktop: 3 columns
-};
+// ── Product card ──────────────────────────────────────────────
+
+// eslint-disable-next-line react/display-name
+const ProductCard = React.memo(
+  ({
+    item,
+    onRemove,
+    onMoveToCart,
+    isRemoving,
+    isMoving,
+  }: {
+    item: WishlistItem;
+    onRemove: () => void;
+    onMoveToCart: () => void;
+    isRemoving: boolean;
+    isMoving: boolean;
+  }) => {
+    return (
+      <View style={[card.wrap, { width: CARD_W }]}>
+        {/* Image */}
+        <View style={card.imgWrap}>
+          <Image
+            source={`${IMAGE_BASE}/${item.product.id}`}
+            style={card.img}
+            contentFit="cover"
+            transition={200}
+          />
+
+          {/* Remove button — always visible, top-right */}
+          <TouchableOpacity
+            style={card.removeBtn}
+            onPress={onRemove}
+            disabled={isRemoving}
+            hitSlop={6}
+            activeOpacity={0.75}
+          >
+            {isRemoving ? (
+              <ActivityIndicator size={12} color="#DC2626" />
+            ) : (
+              <Ionicons name="close" size={14} color="#DC2626" />
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/* Info */}
+        <View style={card.body}>
+          <Text style={card.name} numberOfLines={2}>
+            {item.product.name}
+          </Text>
+
+          <View style={card.footer}>
+            <Text style={card.price}>
+              ₦{formatCurrency(item.product.price)}
+            </Text>
+            <TouchableOpacity
+              style={[card.cartBtn, isMoving && card.cartBtnBusy]}
+              onPress={onMoveToCart}
+              disabled={isMoving}
+              activeOpacity={0.8}
+            >
+              {isMoving ? (
+                <ActivityIndicator size={12} color="#fff" />
+              ) : (
+                <Ionicons name="bag-add-outline" size={14} color="#fff" />
+              )}
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
+    );
+  },
+);
+
+const card = StyleSheet.create({
+  wrap: {
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    marginBottom: COL_GAP,
+    overflow: "hidden",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.07,
+        shadowRadius: 6,
+      },
+      android: { elevation: 2 },
+    }),
+  },
+  imgWrap: {
+    width: "100%",
+    aspectRatio: 1,
+    backgroundColor: "#F3F4F6",
+  },
+  img: {
+    width: "100%",
+    height: "100%",
+  },
+  removeBtn: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: "#fff",
+    justifyContent: "center",
+    alignItems: "center",
+    ...Platform.select({
+      ios: {
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.12,
+        shadowRadius: 3,
+      },
+      android: { elevation: 3 },
+    }),
+  },
+  body: {
+    padding: 10,
+    gap: 6,
+  },
+  name: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#111827",
+    lineHeight: 17,
+  },
+  footer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  price: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#111827",
+    flexShrink: 1,
+  },
+  cartBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    backgroundColor: "#111827",
+    justifyContent: "center",
+    alignItems: "center",
+    flexShrink: 0,
+  },
+  cartBtnBusy: {
+    backgroundColor: "#9CA3AF",
+  },
+});
+
+// ── Main screen ───────────────────────────────────────────────
 
 const Saved = () => {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("all");
-  const [viewMode, setViewMode] = useState("grid");
+  const [search, setSearch] = useState("");
+  const [activeCategory, setActiveCategory] = useState("All");
 
-  // Fetch wishlist from API
+  // Per-item loading states
+  const [removingIds, setRemovingIds] = useState<Set<string>>(new Set());
+  const [movingIds, setMovingIds] = useState<Set<string>>(new Set());
+
   const {
     data: wishlistData,
-    isLoading: wishlistLoading,
-    error: wishlistError,
+    isLoading,
+    isFetching,
+    refetch,
   } = useGetWishlistQuery({});
+
   const [removeFromWishlist] = useRemoveFromWishlistMutation();
   const [moveToCart] = useMoveToCartMutation();
 
-  const wishlistItems: WishlistItem[] = wishlistData?.items || [];
+  const allItems: WishlistItem[] = wishlistData?.data ?? [];
+
+  // Build category list
   const categories = [
-    "all",
-    ...new Set(
-      wishlistItems.map((item: WishlistItem) => item.category || "other")
+    "All",
+    ...Array.from(
+      new Set(allItems.map((i) => i.product?.category?.name ?? "Other")),
     ),
   ];
 
-  // Filter items based on search and category
-  const filteredItems = wishlistItems.filter((item: WishlistItem) => {
-    const matchesSearch = item.name
-      ?.toLowerCase()
-      .includes(searchQuery.toLowerCase());
-    const matchesCategory =
-      selectedCategory === "all" || item.category === selectedCategory;
-    return matchesSearch && matchesCategory;
+  // Filter
+  const filtered = allItems.filter((item) => {
+    const matchSearch = item.product.name
+      .toLowerCase()
+      .includes(search.toLowerCase());
+    const matchCat =
+      activeCategory === "All" ||
+      (item.product?.category?.name ?? "Other") === activeCategory;
+    return matchSearch && matchCat;
   });
 
-  const handleRemove = async (id: string) => {
-    try {
-      await removeFromWishlist(id).unwrap();
-    } catch (error) {
-      console.error("Failed to remove from wishlist:", error);
-    }
-  };
+  // ── Handlers ─────────────────────────────────────────────────
 
-  const handleMoveToCart = async (id: string) => {
-    try {
-      await moveToCart(id).unwrap();
-    } catch (error) {
-      console.error("Failed to move to cart:", error);
-    }
-  };
-
-  if (wishlistLoading) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#DB3022" />
-          <Text>Loading saved items...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  if (wishlistError) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <Text style={styles.errorText}>Failed to load saved items</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  if (!wishlistItems || wishlistItems.length === 0) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.loadingContainer}>
-          <Text style={styles.emptyText}>You have no saved items</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
-
-  const cardWidth = getCardWidth();
-
-  const renderGridItem = ({ item }: { item: any }) => (
-    <View style={[styles.gridCard, { width: cardWidth }]}>
-      <View style={styles.imageContainer}>
-        <Image source={{ uri: item.image }} style={styles.productImage} />
-        <TouchableOpacity
-          style={styles.heartButton}
-          onPress={() => handleRemove(item.id)}
-        >
-          <Text style={styles.heartIcon}>❤️</Text>
-        </TouchableOpacity>
-      </View>
-      <View style={styles.cardContent}>
-        <Text style={styles.productName} numberOfLines={1}>
-          {item.name}
-        </Text>
-        <Text style={styles.savedDate}>
-          Saved {item.savedDate || "recently"}
-        </Text>
-        <View style={styles.cardFooter}>
-          <Text style={styles.price}>
-            {item.price ? `₦${item.price}` : "N/A"}
-          </Text>
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={() => handleMoveToCart(item.id)}
-          >
-            <Text style={styles.addButtonText}>Add to Cart</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </View>
+  const handleRemove = useCallback(
+    async (id: string, name: string) => {
+      Alert.alert("Remove Item", `Remove "${name}" from your saved items?`, [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: async () => {
+            setRemovingIds((prev) => new Set(prev).add(id));
+            try {
+              await removeFromWishlist(id).unwrap();
+            } catch {
+              Alert.alert("Error", "Could not remove item. Please try again.");
+            } finally {
+              setRemovingIds((prev) => {
+                const next = new Set(prev);
+                next.delete(id);
+                return next;
+              });
+            }
+          },
+        },
+      ]);
+    },
+    [removeFromWishlist],
   );
 
-  const renderListItem = ({ item }: { item: any }) => (
-    <View style={styles.listCard}>
-      <Image source={{ uri: item.image }} style={styles.listImage} />
-      <View style={styles.listContent}>
-        <Text style={styles.productName} numberOfLines={1}>
-          {item.name}
-        </Text>
-        <Text style={styles.savedDate}>
-          Saved {item.savedDate || "recently"}
-        </Text>
-        <Text style={styles.price}>
-          {item.price ? `₦${item.price}` : "N/A"}
-        </Text>
-      </View>
-      <View style={styles.listActions}>
-        <TouchableOpacity
-          style={styles.heartButtonSmall}
-          onPress={() => handleRemove(item.id)}
-        >
-          <Text style={styles.heartIcon}>❤️</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.addButtonSmall}>
-          <Text style={styles.addButtonText}>Add</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
+  const handleMoveToCart = useCallback(
+    async (id: string) => {
+      setMovingIds((prev) => new Set(prev).add(id));
+      try {
+        await moveToCart(id).unwrap();
+      } catch {
+        Alert.alert("Error", "Could not add to cart. Please try again.");
+      } finally {
+        setMovingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        });
+      }
+    },
+    [moveToCart],
   );
+
+  // ── Loading ───────────────────────────────────────────────────
+
+  if (isLoading) {
+    return (
+      <SafeAreaView
+        style={styles.safeArea}
+        edges={["top", "bottom", "left", "right"]}
+      >
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color="#111827" />
+          <Text style={styles.loadingText}>Loading saved items…</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // ── Render ────────────────────────────────────────────────────
 
   return (
-    <SafeAreaView style={styles.container}>
-      {/* Header */}
+    <SafeAreaView
+      style={styles.safeArea}
+      edges={["top", "bottom", "left", "right"]}
+    >
+      <StatusBar barStyle="dark-content" />
+
+      {/* ── Sticky header ── */}
       <View style={styles.header}>
-        <View style={styles.headerTop}>
+        {/* Title row */}
+        <View style={styles.titleRow}>
           <View>
-            <Text style={styles.title}>Saved Items</Text>
-            <Text style={styles.subtitle}>{filteredItems?.length} items</Text>
+            <Text style={styles.eyebrow}>My Account</Text>
+            <Text style={styles.title}>Saved</Text>
           </View>
-          <View style={styles.viewToggle}>
-            <TouchableOpacity
-              style={[
-                styles.toggleButton,
-                viewMode === "grid" && styles.toggleButtonActive,
-              ]}
-              onPress={() => setViewMode("grid")}
-            >
-              <Text
-                style={[
-                  styles.toggleText,
-                  viewMode === "grid" && styles.toggleTextActive,
-                ]}
-              >
-                Grid
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[
-                styles.toggleButton,
-                viewMode === "list" && styles.toggleButtonActive,
-              ]}
-              onPress={() => setViewMode("list")}
-            >
-              <Text
-                style={[
-                  styles.toggleText,
-                  viewMode === "list" && styles.toggleTextActive,
-                ]}
-              >
-                List
-              </Text>
-            </TouchableOpacity>
-          </View>
+          {allItems.length > 0 && (
+            <View style={styles.countPill}>
+              <Text style={styles.countText}>{allItems.length}</Text>
+            </View>
+          )}
         </View>
 
         {/* Search */}
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Search saved items..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholderTextColor="#9CA3AF"
-        />
-
-        {/* Categories */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.categoriesContainer}
-        >
-          {categories.map((category) => (
-            <TouchableOpacity
-              key={category}
-              style={[
-                styles.categoryButton,
-                selectedCategory === category && styles.categoryButtonActive,
-              ]}
-              onPress={() => setSelectedCategory(category)}
-            >
-              <Text
-                style={[
-                  styles.categoryText,
-                  selectedCategory === category && styles.categoryTextActive,
-                ]}
-              >
-                {category.charAt(0).toUpperCase() + category.slice(1)}
-              </Text>
+        <View style={styles.searchWrap}>
+          <Ionicons name="search-outline" size={16} color="#9CA3AF" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Search saved items…"
+            placeholderTextColor="#9CA3AF"
+            value={search}
+            onChangeText={setSearch}
+            returnKeyType="search"
+          />
+          {search.length > 0 && (
+            <TouchableOpacity onPress={() => setSearch("")} hitSlop={8}>
+              <Ionicons name="close-circle" size={16} color="#9CA3AF" />
             </TouchableOpacity>
-          ))}
-        </ScrollView>
+          )}
+        </View>
+
+        {/* Category chips */}
+        {categories.length > 1 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.chipsContent}
+            style={styles.chipsScroll}
+          >
+            {categories.map((cat) => {
+              const active = cat === activeCategory;
+              return (
+                <TouchableOpacity
+                  key={cat}
+                  style={[styles.chip, active && styles.chipActive]}
+                  onPress={() => setActiveCategory(cat)}
+                  activeOpacity={0.7}
+                >
+                  <Text
+                    style={[styles.chipText, active && styles.chipTextActive]}
+                  >
+                    {cat}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
+        )}
       </View>
 
-      {/* Products */}
-      {filteredItems.length === 0 ? (
-        <View style={styles.emptyState}>
-          <Text style={styles.emptyIcon}>💔</Text>
-          <Text style={styles.emptyTitle}>No saved items found</Text>
-          <Text style={styles.emptyText}>
-            Try adjusting your search or filters
+      {/* ── Empty state ── */}
+      {filtered.length === 0 ? (
+        <View style={styles.centered}>
+          <View style={styles.emptyIconWrap}>
+            <Ionicons name="heart-outline" size={32} color="#9CA3AF" />
+          </View>
+          <Text style={styles.emptyTitle}>
+            {search || activeCategory !== "All"
+              ? "No results"
+              : "Nothing saved yet"}
+          </Text>
+          <Text style={styles.emptySubtitle}>
+            {search || activeCategory !== "All"
+              ? "Try a different search or category"
+              : "Tap the heart on any product to save it here"}
           </Text>
         </View>
       ) : (
         <FlatList
-          data={filteredItems}
-          renderItem={viewMode === "grid" ? renderGridItem : renderListItem}
+          data={filtered}
           keyExtractor={(item) => item.id}
-          numColumns={
-            viewMode === "grid" ? (width < 768 ? 1 : width < 1024 ? 2 : 3) : 1
+          numColumns={NUM_COLS}
+          columnWrapperStyle={styles.row}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={isFetching && !isLoading}
+              onRefresh={refetch}
+              tintColor="#111827"
+            />
           }
-          key={viewMode === "grid" ? "grid" : "list"}
-          contentContainerStyle={styles.listContainer}
-          columnWrapperStyle={
-            viewMode === "grid" && width >= 768 ? styles.columnWrapper : null
-          }
+          renderItem={({ item }) => (
+            <ProductCard
+              item={item}
+              onRemove={() => handleRemove(item.id, item.product.name)}
+              onMoveToCart={() => handleMoveToCart(item.id)}
+              isRemoving={removingIds.has(item.id)}
+              isMoving={movingIds.has(item.id)}
+            />
+          )}
         />
       )}
     </SafeAreaView>
   );
 };
 
+// ── Styles ────────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
-    backgroundColor: "#F9FAFB",
+    backgroundColor: "#F3F4F6",
   },
-  loadingContainer: {
+  centered: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 16,
+    gap: 12,
+    padding: 32,
   },
-  errorText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#DC2626",
-    marginTop: 12,
-  },
-  header: {
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: CARD_PADDING,
-    paddingTop: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
-  },
-  headerTop: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#111827",
-  },
-  subtitle: {
+  loadingText: {
     fontSize: 14,
-    color: "#6B7280",
-    marginTop: 4,
-  },
-  viewToggle: {
-    flexDirection: "row",
-    backgroundColor: "#F3F4F6",
-    borderRadius: 8,
-    padding: 2,
-  },
-  toggleButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 6,
-    borderRadius: 6,
-  },
-  toggleButtonActive: {
-    backgroundColor: "#111827",
-  },
-  toggleText: {
-    fontSize: 14,
-    color: "#6B7280",
-    fontWeight: "500",
-  },
-  toggleTextActive: {
-    color: "#FFFFFF",
-  },
-  searchInput: {
-    backgroundColor: "#F9FAFB",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    fontSize: 16,
-    marginBottom: 12,
-    color: "#111827",
-  },
-  categoriesContainer: {
-    marginBottom: 4,
-  },
-  categoryButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: "#F3F4F6",
-    borderRadius: 20,
-    marginRight: 8,
-  },
-  categoryButtonActive: {
-    backgroundColor: "#111827",
-  },
-  categoryText: {
-    fontSize: 14,
-    color: "#374151",
-    fontWeight: "500",
-  },
-  categoryTextActive: {
-    color: "#FFFFFF",
-  },
-  listContainer: {
-    padding: CARD_PADDING,
-  },
-  columnWrapper: {
-    justifyContent: "space-between",
-  },
-  gridCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    marginBottom: CARD_GAP,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  imageContainer: {
-    position: "relative",
-    width: "100%",
-    aspectRatio: 1,
-    borderTopLeftRadius: 12,
-    borderTopRightRadius: 12,
-    overflow: "hidden",
-  },
-  productImage: {
-    width: "100%",
-    height: "100%",
-  },
-  heartButton: {
-    position: "absolute",
-    top: 12,
-    right: 12,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    width: 36,
-    height: 36,
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  heartIcon: {
-    fontSize: 16,
-  },
-  cardContent: {
-    padding: 12,
-  },
-  productName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#111827",
-    marginBottom: 4,
-  },
-  savedDate: {
-    fontSize: 12,
     color: "#9CA3AF",
-    marginBottom: 8,
   },
-  cardFooter: {
+
+  // Header
+  header: {
+    backgroundColor: "#fff",
+    paddingHorizontal: H_PAD,
+    paddingTop: 8,
+    paddingBottom: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "#E5E7EB",
+    gap: 12,
+  },
+  titleRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  price: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#111827",
-  },
-  addButton: {
-    backgroundColor: "#111827",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  addButtonText: {
-    color: "#FFFFFF",
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  listCard: {
-    flexDirection: "row",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: CARD_GAP,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  listImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 8,
-  },
-  listContent: {
-    flex: 1,
-    marginLeft: 12,
-    justifyContent: "center",
-  },
-  listActions: {
     justifyContent: "space-between",
     alignItems: "flex-end",
   },
-  heartButtonSmall: {
-    padding: 4,
+  eyebrow: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#9CA3AF",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    marginBottom: 2,
   },
-  addButtonSmall: {
+  title: {
+    fontSize: 28,
+    fontWeight: "800",
+    color: "#111827",
+    letterSpacing: -0.6,
+  },
+  countPill: {
     backgroundColor: "#111827",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 6,
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    marginBottom: 3,
   },
-  emptyState: {
+  countText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+
+  // Search
+  searchWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F9FAFB",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    gap: 8,
+  },
+  searchInput: {
     flex: 1,
+    fontSize: 14,
+    color: "#111827",
+    padding: 0,
+  },
+
+  // Category chips
+  chipsScroll: {
+    flexGrow: 0,
+  },
+  chipsContent: {
+    gap: 8,
+  },
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    backgroundColor: "#F3F4F6",
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: "transparent",
+  },
+  chipActive: {
+    backgroundColor: "#111827",
+    borderColor: "#111827",
+  },
+  chipText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#6B7280",
+  },
+  chipTextActive: {
+    color: "#fff",
+  },
+
+  // List
+  listContent: {
+    padding: H_PAD,
+    paddingBottom: 32,
+  },
+  row: {
+    gap: COL_GAP,
+  },
+
+  // Empty
+  emptyIconWrap: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: "#F3F4F6",
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 32,
-  },
-  emptyIcon: {
-    fontSize: 64,
-    marginBottom: 16,
   },
   emptyTitle: {
-    fontSize: 20,
-    fontWeight: "600",
+    fontSize: 17,
+    fontWeight: "700",
     color: "#111827",
-    marginBottom: 8,
   },
-  emptyText: {
-    fontSize: 16,
-    color: "#6B7280",
+  emptySubtitle: {
+    fontSize: 13,
+    color: "#9CA3AF",
     textAlign: "center",
+    lineHeight: 20,
   },
 });
 

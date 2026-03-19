@@ -1,11 +1,9 @@
-import { useLoginCustomerMutation } from "@/app/api/authApi";
-import { useAuth } from "@/context/authProvider";
+import { useForgotPasswordMutation } from "@/app/api/authApi";
 import { Link, useRouter } from "expo-router";
 import { Formik } from "formik";
 import React from "react";
 import { StyleSheet, Text, TextInput, View } from "react-native";
 import Toast from "react-native-toast-message";
-import Icon from "react-native-vector-icons/FontAwesome";
 import * as Yup from "yup";
 import Button from "../ui/Button";
 
@@ -13,9 +11,6 @@ const validationSchema = Yup.object().shape({
   email: Yup.string()
     .email("Invalid email address")
     .required("Email is required"),
-  password: Yup.string()
-    .min(6, "Password must be at least 6 characters")
-    .required("Password is required"),
 });
 
 const styles = StyleSheet.create({
@@ -45,6 +40,7 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   forgotRow: {
+    color: "#ec762c",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "flex-end",
@@ -69,10 +65,9 @@ const styles = StyleSheet.create({
   },
 });
 
-const LoginForm = () => {
-  const { login } = useAuth();
+const ForgotPasswordForm = () => {
   const router = useRouter();
-  const [loginCustomer, { isLoading }] = useLoginCustomerMutation();
+  const [forgotPassword, { isLoading }] = useForgotPasswordMutation();
 
   return (
     <Formik
@@ -80,32 +75,33 @@ const LoginForm = () => {
       validationSchema={validationSchema}
       onSubmit={async (values, { setSubmitting }) => {
         try {
-          const res = await loginCustomer(values).unwrap();
+          const res = await forgotPassword(values).unwrap();
 
           // Save credentials
-          login(res.token, res.data);
 
           // Show success toast
 
           Toast.show({
             type: "success",
-            text1: "Login Successful",
-            text2: `Welcome back, ${res.data.first_name || "User"}!`,
+            text1: res.data.message ?? "Check your email for otp to proceed",
             position: "top",
             visibilityTime: 3000,
           });
 
           // Navigate to home
-          router.replace("/(tabs)");
+          router.replace("/(auth)/reset-password");
         } catch (err: any) {
+          console.log("Login error:", err);
+
           // Show error toast
           Toast.show({
             type: "error",
-            text1: "Login Failed",
-            text2: err?.data?.message || "Invalid email or password",
+            text1: "Reset Password Failed",
+            text2: err?.data?.message || "Invalid email",
             position: "top",
             visibilityTime: 4000,
           });
+          router.replace("/(auth)/reset-password");
         } finally {
           setSubmitting(false);
         }
@@ -136,36 +132,19 @@ const LoginForm = () => {
             )}
           </View>
 
-          <View>
-            <TextInput
-              placeholderTextColor="#9CA3AF"
-              style={styles.input}
-              placeholder="Enter Password"
-              autoCapitalize="none"
-              secureTextEntry
-              value={values.password}
-              onChangeText={handleChange("password")}
-              onBlur={handleBlur("password")}
-            />
-            {touched.password && errors.password && (
-              <Text style={styles.errorText}>{errors.password}</Text>
-            )}
-          </View>
+          <Button handleSubmit={handleSubmit} disabled={isLoading}>
+            {isLoading ? "Loading..." : "Submit"}
+          </Button>
 
-          <Link href="/(auth)/forgot-password" style={styles.forgotLink}>
+          <Link href="/(auth)/login" style={styles.forgotLink}>
             <View style={styles.forgotRow}>
-              <Text>Forgot your password?</Text>
-              <Icon name="arrow-right" size={16} style={styles.forgotIcon} />
+              <Text style={{ color: "#33718D" }}>Already have account?</Text>
             </View>
           </Link>
-
-          <Button handleSubmit={handleSubmit} disabled={isLoading}>
-            {isLoading ? "Logging in..." : "Login"}
-          </Button>
         </View>
       )}
     </Formik>
   );
 };
 
-export default LoginForm;
+export default ForgotPasswordForm;

@@ -71,8 +71,6 @@ export default function StoreScreen() {
     maxPrice: filters.maxPrice ? parseFloat(filters.maxPrice) : undefined,
   });
 
-  console.log(categories, selectedCategory);
-
   const products = productsData?.items || [];
   const totalProducts = productsData?.total || 0;
   const hasMore = products.length < totalProducts;

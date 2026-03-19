@@ -85,7 +85,7 @@ const Cart = () => {
 
   const subtotal = cartItems.reduce(
     (sum: number, item: CartItem) => sum + item.price * item.quantity,
-    0
+    0,
   );
   const shipping = 15.0;
   const tax = subtotal * 0.08;

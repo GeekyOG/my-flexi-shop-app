@@ -1,7 +1,13 @@
 // components/kyc/KycVerification.tsx
-import { useGetMyKycQuery, useSubmitKycMutation } from "@/app/api/kycApi";
+
+import {
+  useGetMyKycQuery,
+  useSubmitKycMutation,
+  useUpdateMyKycMutation,
+} from "@/app/api/kycApi";
 import { Ionicons } from "@expo/vector-icons";
 import { Picker } from "@react-native-picker/picker";
+import * as ImageManipulator from "expo-image-manipulator";
 import * as ImagePicker from "expo-image-picker";
 import React, { useState } from "react";
 import {
@@ -10,303 +16,631 @@ import {
   Alert,
   Image,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
+
+// ── Types ────────────────────────────────────────────────────
+
+type KycStatus = "pending" | "approved" | "rejected";
+
+interface SelectedDocument {
+  uri: string;
+  mimeType: string;
+  fileName: string;
+  sizeKb?: number;
+}
+
+// ── Constants ────────────────────────────────────────────────
+
+const DOCUMENT_TYPES = [
+  { label: "National ID", value: "national_id" },
+  { label: "Passport", value: "passport" },
+  { label: "Driver's License", value: "drivers_license" },
+  { label: "Voter's Card", value: "voters_card" },
+] as const;
+
+const ALLOWED_MIME_TYPES = ["image/jpeg", "image/png", "image/webp"];
+
+// Max short edge — keeps file size small while text stays legible
+const MAX_DIMENSION = 1200;
+// JPEG quality after compression (0–1)
+const COMPRESS_QUALITY = 0.75;
+// Warn user if still above this after compression
+const WARN_SIZE_KB = 4096; // 4 MB
+
+// ── Image compressor ─────────────────────────────────────────
+//
+// Install: npx expo install expo-image-manipulator
+//
+const compressImage = async (
+  uri: string,
+  originalWidth?: number,
+  originalHeight?: number,
+): Promise<{ uri: string; mimeType: string; fileName: string }> => {
+  const actions: ImageManipulator.Action[] = [];
+
+  if (originalWidth && originalHeight) {
+    const maxDim = Math.max(originalWidth, originalHeight);
+    if (maxDim > MAX_DIMENSION) {
+      const scale = MAX_DIMENSION / maxDim;
+      actions.push({
+        resize: {
+          width: Math.round(originalWidth * scale),
+          height: Math.round(originalHeight * scale),
+        },
+      });
+    }
+  } else {
+    actions.push({ resize: { width: MAX_DIMENSION } });
+  }
+
+  const result = await ImageManipulator.manipulateAsync(uri, actions, {
+    compress: COMPRESS_QUALITY,
+    format: ImageManipulator.SaveFormat.JPEG,
+  });
+
+  return {
+    uri: result.uri,
+    mimeType: "image/jpeg",
+    fileName: `kyc_doc_${Date.now()}.jpg`,
+  };
+};
+
+// ── Sub-components ───────────────────────────────────────────
+
+const StatusCard = ({
+  status,
+  onResubmit,
+}: {
+  status: KycStatus;
+  onResubmit?: () => void;
+}) => {
+  const config = {
+    approved: {
+      icon: "checkmark-circle" as const,
+      color: "#059669",
+      bg: "#ECFDF5",
+      title: "KYC Verified",
+      text: "Your identity has been successfully verified.",
+    },
+    pending: {
+      icon: "time" as const,
+      color: "#D97706",
+      bg: "#FFFBEB",
+      title: "Under Review",
+      text: "We're reviewing your documents. You'll be notified once complete.",
+    },
+    rejected: {
+      icon: "close-circle" as const,
+      color: "#DC2626",
+      bg: "#FEF2F2",
+      title: "Verification Failed",
+      text: "Your documents were not accepted. Please resubmit with a clearer image.",
+    },
+  }[status];
+
+  return (
+    <View style={[styles.statusCard, { backgroundColor: config.bg }]}>
+      <View style={styles.statusIconWrap}>
+        <Ionicons name={config.icon} size={56} color={config.color} />
+      </View>
+      <Text style={[styles.statusTitle, { color: config.color }]}>
+        {config.title}
+      </Text>
+      <Text style={styles.statusText}>{config.text}</Text>
+
+      {status === "rejected" && onResubmit && (
+        <TouchableOpacity
+          style={styles.resubmitButton}
+          onPress={onResubmit}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="refresh" size={18} color="#FFFFFF" />
+          <Text style={styles.resubmitButtonText}>Resubmit Documents</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+};
+
+const DocumentTypePicker = ({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) => {
+  const label =
+    DOCUMENT_TYPES.find((t) => t.value === value)?.label ?? "Select Document";
+
+  const showIOSPicker = () => {
+    const options = [...DOCUMENT_TYPES.map((t) => t.label), "Cancel"];
+    ActionSheetIOS.showActionSheetWithOptions(
+      { options, cancelButtonIndex: options.length - 1 },
+      (idx) => {
+        if (idx < DOCUMENT_TYPES.length) onChange(DOCUMENT_TYPES[idx].value);
+      },
+    );
+  };
+
+  return (
+    <View style={styles.fieldGroup}>
+      <Text style={styles.label}>Document Type</Text>
+
+      {Platform.OS === "ios" ? (
+        <TouchableOpacity
+          style={styles.iosPickerButton}
+          onPress={showIOSPicker}
+          activeOpacity={0.7}
+        >
+          <Text style={styles.iosPickerText}>{label}</Text>
+          <Ionicons name="chevron-down" size={18} color="#6B7280" />
+        </TouchableOpacity>
+      ) : (
+        <View style={styles.pickerWrapper}>
+          <Picker
+            selectedValue={value}
+            onValueChange={onChange}
+            style={styles.picker}
+            mode="dropdown"
+          >
+            {DOCUMENT_TYPES.map((t) => (
+              <Picker.Item key={t.value} label={t.label} value={t.value} />
+            ))}
+          </Picker>
+        </View>
+      )}
+    </View>
+  );
+};
+
+// ── Main Component ───────────────────────────────────────────
 
 const KycVerification = () => {
+  const {
+    data: kycResponse,
+    isLoading: isLoadingKyc,
+    refetch,
+  } = useGetMyKycQuery({});
+
   const [submitKyc, { isLoading: isSubmitting }] = useSubmitKycMutation();
-  const { data: kycData, refetch } = useGetMyKycQuery({});
+  const [updateMyKyc, { isLoading: isUpdating }] = useUpdateMyKycMutation();
 
-  const [selectedDocument, setSelectedDocument] = useState<any>(null);
-  const [docType, setDocType] = useState("national_id");
-  const [showPicker, setShowPicker] = useState(false);
+  const [selectedDoc, setSelectedDoc] = useState<SelectedDocument | null>(null);
+  const [docType, setDocType] = useState<string>("national_id");
+  const [isCompressing, setIsCompressing] = useState(false);
+  const [isResubmitting, setIsResubmitting] = useState(false);
 
-  const documentTypes = [
-    { label: "National ID", value: "national_id" },
-    { label: "Passport", value: "passport" },
-    { label: "Driver's License", value: "drivers_license" },
-    { label: "Voter's Card", value: "voters_card" },
-  ];
+  const isBusy = isSubmitting || isUpdating || isCompressing;
+  const kycData = kycResponse?.data;
+  const kycStatus: KycStatus | null = kycData?.status ?? null;
 
-  const requestPermissions = async (type: "camera" | "library") => {
-    if (Platform.OS !== "web") {
-      if (type === "camera") {
-        const { status } = await ImagePicker.requestCameraPermissionsAsync();
-        if (status !== "granted") {
-          Alert.alert(
-            "Permission Required",
-            "Please grant camera permissions to take photos.",
-          );
-          return false;
-        }
-      } else {
-        const { status } =
-          await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (status !== "granted") {
-          Alert.alert(
-            "Permission Required",
-            "Please grant photo library permissions to upload documents.",
-          );
-          return false;
-        }
-      }
+  // ── Permissions ─────────────────────────────────────────────
+
+  const requestPermission = async (type: "camera" | "library") => {
+    if (Platform.OS === "web") return true;
+    const { status } =
+      type === "camera"
+        ? await ImagePicker.requestCameraPermissionsAsync()
+        : await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (status !== "granted") {
+      Alert.alert(
+        "Permission Required",
+        type === "camera"
+          ? "Please allow camera access to take a photo."
+          : "Please allow photo library access to upload documents.",
+      );
+      return false;
     }
     return true;
   };
 
-  const pickImage = async () => {
-    const hasPermission = await requestPermissions("library");
-    if (!hasPermission) return;
+  // ── Process & compress ───────────────────────────────────────
 
+  const processImage = async (uri: string, width?: number, height?: number) => {
+    setIsCompressing(true);
+    try {
+      const compressed = await compressImage(uri, width, height);
+
+      // Estimate file size — warn if still large
+      try {
+        const response = await fetch(compressed.uri);
+        const blob = await response.blob();
+        const sizeKb = Math.round(blob.size / 1024);
+
+        if (sizeKb > WARN_SIZE_KB) {
+          Alert.alert(
+            "Large File",
+            `The image is ${(sizeKb / 1024).toFixed(1)} MB after compression. ` +
+              "Consider using a smaller photo for faster upload.",
+          );
+        }
+
+        setSelectedDoc({ ...compressed, sizeKb });
+      } catch {
+        setSelectedDoc(compressed);
+      }
+    } catch {
+      Alert.alert("Error", "Failed to process image. Please try another.");
+    } finally {
+      setIsCompressing(false);
+    }
+  };
+
+  // ── Image selection ─────────────────────────────────────────
+
+  const handlePickImage = async () => {
+    if (!(await requestPermission("library"))) return;
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [4, 3],
-        quality: 0.8,
+        quality: 1, // We compress ourselves — don't double-compress
       });
 
       if (!result.canceled && result.assets[0]) {
-        setSelectedDocument({
-          uri: result.assets[0].uri,
-          type: "image",
-          mimeType: result.assets[0].type || "image/jpeg",
-          fileName: result.assets[0].fileName || "document.jpg",
-        });
+        const asset = result.assets[0];
+        if (!ALLOWED_MIME_TYPES.includes(asset.mimeType ?? "")) {
+          Alert.alert(
+            "Unsupported Format",
+            "Please choose a JPEG, PNG, or WEBP image.",
+          );
+          return;
+        }
+        await processImage(asset.uri, asset.width, asset.height);
       }
-    } catch (error) {
-      Alert.alert("Error", "Failed to pick image");
-      console.error(error);
+    } catch {
+      Alert.alert("Error", "Could not open photo library. Please try again.");
     }
   };
 
-  const takePhoto = async () => {
-    const hasPermission = await requestPermissions("camera");
-    if (!hasPermission) return;
-
+  const handleTakePhoto = async () => {
+    if (!(await requestPermission("camera"))) return;
     try {
       const result = await ImagePicker.launchCameraAsync({
         allowsEditing: true,
         aspect: [4, 3],
-        quality: 0.8,
+        quality: 1,
       });
 
       if (!result.canceled && result.assets[0]) {
-        setSelectedDocument({
-          uri: result.assets[0].uri,
-          type: "image",
-          mimeType: "image/jpeg",
-          fileName: "camera_photo.jpg",
-        });
+        const asset = result.assets[0];
+        await processImage(asset.uri, asset.width, asset.height);
       }
-    } catch (error) {
-      Alert.alert("Error", "Failed to take photo");
-      console.error(error);
+    } catch {
+      Alert.alert("Error", "Could not open camera. Please try again.");
     }
   };
 
+  // ── Build FormData ──────────────────────────────────────────
+
+  const buildFormData = (): FormData => {
+    const fd = new FormData();
+    fd.append("image", {
+      uri: selectedDoc!.uri,
+      type: selectedDoc!.mimeType,
+      name: selectedDoc!.fileName,
+    } as any);
+    fd.append("docType", docType);
+    return fd;
+  };
+
+  // ── Submit ──────────────────────────────────────────────────
+
   const handleSubmit = async () => {
-    if (!selectedDocument) {
-      Alert.alert("Error", "Please select a document to upload");
+    if (!selectedDoc) {
+      Alert.alert(
+        "Missing Document",
+        "Please select or take a photo of your document.",
+      );
       return;
     }
 
     try {
-      const formData = new FormData();
+      const isUpdate = kycStatus === "rejected" && isResubmitting;
 
-      formData.append("image", {
-        uri: selectedDocument.uri,
-        type: selectedDocument.mimeType,
-        name: selectedDocument.fileName,
-      } as any);
+      if (isUpdate) {
+        await updateMyKyc(buildFormData()).unwrap();
+        Alert.alert(
+          "Resubmitted",
+          "Your documents have been resubmitted for review.",
+        );
+        setIsResubmitting(false);
+      } else {
+        await submitKyc(buildFormData()).unwrap();
+        Alert.alert(
+          "Submitted",
+          "Your KYC has been submitted. We'll review it shortly.",
+        );
+      }
 
-      formData.append("docType", docType);
-
-      const result = await submitKyc(formData).unwrap();
-
-      Alert.alert("Success", "KYC submitted successfully. It's under review.");
-      setSelectedDocument(null);
+      setSelectedDoc(null);
       refetch();
-    } catch (error: any) {
-      Alert.alert("Error", error.data?.message || "Failed to submit KYC");
-      console.error(error);
-    }
-  };
-
-  const getDocumentLabel = () => {
-    return (
-      documentTypes.find((type) => type.value === docType)?.label ||
-      "Select Document"
-    );
-  };
-
-  const showIOSPicker = () => {
-    if (Platform.OS === "ios") {
-      const options = [...documentTypes.map((t) => t.label), "Cancel"];
-      ActionSheetIOS.showActionSheetWithOptions(
-        {
-          options,
-          cancelButtonIndex: options.length - 1,
-        },
-        (buttonIndex) => {
-          if (buttonIndex < documentTypes.length) {
-            setDocType(documentTypes[buttonIndex].value);
-          }
-        },
+    } catch (err: any) {
+      Alert.alert(
+        "Submission Failed",
+        err?.data?.message ?? "Something went wrong. Please try again.",
       );
-    } else {
-      setShowPicker(true);
     }
   };
 
-  // If user already has KYC, show status instead
-  if (kycData?.data && kycData.data.status !== "rejected") {
+  // ── Loading ─────────────────────────────────────────────────
+
+  if (isLoadingKyc) {
     return (
-      <SafeAreaProvider style={styles.container}>
-        <View style={styles.container}>
-          <View style={styles.statusCard}>
-            <Ionicons
-              name={
-                kycData.data.status === "approved" ? "checkmark-circle" : "time"
-              }
-              size={64}
-              color={kycData.data.status === "approved" ? "#059669" : "#D97706"}
-            />
-            <Text style={styles.statusTitle}>
-              {kycData.data.status === "approved"
-                ? "KYC Verified"
-                : "KYC Under Review"}
-            </Text>
-            <Text style={styles.statusText}>
-              {kycData.data.status === "approved"
-                ? "Your account has been verified"
-                : "We're reviewing your documents. You'll be notified soon."}
-            </Text>
-          </View>
+      <SafeAreaView
+        style={styles.safeArea}
+        edges={["top", "bottom", "left", "right"]}
+      >
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color="#111827" />
+          <Text style={styles.loadingText}>Loading KYC status…</Text>
         </View>
-      </SafeAreaProvider>
+      </SafeAreaView>
     );
   }
 
+  // ── Status screen ───────────────────────────────────────────
+
+  if (kycStatus && !(kycStatus === "rejected" && isResubmitting)) {
+    return (
+      <SafeAreaView
+        style={styles.safeArea}
+        edges={["top", "bottom", "left", "right"]}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <Text style={styles.pageTitle}>Identity Verification</Text>
+          <StatusCard
+            status={kycStatus}
+            onResubmit={
+              kycStatus === "rejected"
+                ? () => {
+                    setDocType(kycData?.docType ?? "national_id");
+                    setIsResubmitting(true);
+                  }
+                : undefined
+            }
+          />
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  // ── Upload form ─────────────────────────────────────────────
+
+  const isResubmitFlow = kycStatus === "rejected" && isResubmitting;
+
   return (
-    <SafeAreaProvider style={styles.container}>
-      <View style={styles.container}>
+    <SafeAreaView
+      style={styles.safeArea}
+      edges={["top", "bottom", "left", "right"]}
+    >
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+      >
+        <Text style={styles.pageTitle}>Identity Verification</Text>
+
+        {isResubmitFlow && (
+          <View style={styles.resubmitBanner}>
+            <Ionicons name="alert-circle" size={18} color="#92400E" />
+            <Text style={styles.resubmitBannerText}>
+              Please upload a clearer photo of your document.
+            </Text>
+          </View>
+        )}
+
         <View style={styles.card}>
-          <Text style={styles.title}>KYC Verification</Text>
-          <Text style={styles.subtitle}>
-            Upload a government-issued ID for verification
+          <Text style={styles.cardTitle}>
+            {isResubmitFlow ? "Resubmit Documents" : "Upload Document"}
+          </Text>
+          <Text style={styles.cardSubtitle}>
+            Provide a clear photo of a valid government-issued ID.
           </Text>
 
-          {/* Document Type Picker */}
-          <View style={styles.pickerContainer}>
-            <Text style={styles.label}>Document Type</Text>
+          <DocumentTypePicker value={docType} onChange={setDocType} />
 
-            {Platform.OS === "ios" ? (
-              // iOS: ActionSheet
-              <TouchableOpacity
-                style={styles.iosPickerButton}
-                onPress={showIOSPicker}
-              >
-                <Text style={styles.iosPickerButtonText}>
-                  {getDocumentLabel()}
-                </Text>
-                <Ionicons name="chevron-down" size={20} color="#6B7280" />
-              </TouchableOpacity>
-            ) : (
-              // Android: Native Picker
-              <View style={styles.pickerWrapper}>
-                <Picker
-                  selectedValue={docType}
-                  onValueChange={(value) => setDocType(value)}
-                  style={styles.picker}
-                  mode="dropdown"
-                >
-                  {documentTypes.map((type) => (
-                    <Picker.Item
-                      key={type.value}
-                      label={type.label}
-                      value={type.value}
-                    />
-                  ))}
-                </Picker>
-              </View>
-            )}
-          </View>
+          {/* Compressing indicator */}
+          {isCompressing && (
+            <View style={styles.compressingWrap}>
+              <ActivityIndicator color="#111827" />
+              <Text style={styles.compressingText}>Optimising image…</Text>
+            </View>
+          )}
 
-          {/* Document Preview */}
-          {selectedDocument && (
+          {/* Preview */}
+          {!isCompressing && selectedDoc && (
             <View style={styles.previewContainer}>
               <Image
-                source={{ uri: selectedDocument.uri }}
+                source={{ uri: selectedDoc.uri }}
                 style={styles.previewImage}
                 resizeMode="cover"
               />
+              <View style={styles.previewTag}>
+                <Ionicons name="document" size={12} color="#FFFFFF" />
+                <Text style={styles.previewTagText} numberOfLines={1}>
+                  {selectedDoc.fileName}
+                  {selectedDoc.sizeKb
+                    ? `  ·  ${
+                        selectedDoc.sizeKb < 1024
+                          ? `${selectedDoc.sizeKb} KB`
+                          : `${(selectedDoc.sizeKb / 1024).toFixed(1)} MB`
+                      }`
+                    : ""}
+                </Text>
+              </View>
               <TouchableOpacity
                 style={styles.removeButton}
-                onPress={() => setSelectedDocument(null)}
+                onPress={() => setSelectedDoc(null)}
+                hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
               >
-                <Ionicons name="close-circle" size={28} color="#DC2626" />
+                <Ionicons name="close-circle" size={30} color="#DC2626" />
               </TouchableOpacity>
             </View>
           )}
 
-          {/* Upload Buttons */}
-          {!selectedDocument && (
-            <View style={styles.buttonContainer}>
-              <TouchableOpacity style={styles.uploadButton} onPress={takePhoto}>
-                <Ionicons name="camera" size={24} color="#111827" />
-                <Text style={styles.uploadButtonText}>Take Photo</Text>
+          {/* Upload buttons */}
+          {!isCompressing && !selectedDoc && (
+            <View style={styles.uploadRow}>
+              <TouchableOpacity
+                style={styles.uploadOption}
+                onPress={handleTakePhoto}
+                activeOpacity={0.7}
+              >
+                <View style={styles.uploadIconWrap}>
+                  <Ionicons name="camera" size={28} color="#111827" />
+                </View>
+                <Text style={styles.uploadOptionText}>Take Photo</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.uploadButton} onPress={pickImage}>
-                <Ionicons name="images" size={24} color="#111827" />
-                <Text style={styles.uploadButtonText}>Choose from Gallery</Text>
+              <View style={styles.uploadDivider} />
+
+              <TouchableOpacity
+                style={styles.uploadOption}
+                onPress={handlePickImage}
+                activeOpacity={0.7}
+              >
+                <View style={styles.uploadIconWrap}>
+                  <Ionicons name="images" size={28} color="#111827" />
+                </View>
+                <Text style={styles.uploadOptionText}>Gallery</Text>
               </TouchableOpacity>
             </View>
           )}
 
-          {/* Submit Button */}
-          {selectedDocument && (
-            <TouchableOpacity
-              style={styles.submitButton}
-              onPress={handleSubmit}
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? (
+          {/* Submit */}
+          <TouchableOpacity
+            style={[
+              styles.submitButton,
+              (!selectedDoc || isBusy) && styles.submitButtonDisabled,
+            ]}
+            onPress={handleSubmit}
+            disabled={!selectedDoc || isBusy}
+            activeOpacity={0.8}
+          >
+            {isSubmitting || isUpdating ? (
+              <>
                 <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <>
-                  <Ionicons name="cloud-upload" size={20} color="#FFFFFF" />
-                  <Text style={styles.submitButtonText}>
-                    Submit for Verification
-                  </Text>
-                </>
-              )}
+                <Text style={styles.submitButtonText}>Uploading…</Text>
+              </>
+            ) : (
+              <>
+                <Ionicons name="cloud-upload" size={20} color="#FFFFFF" />
+                <Text style={styles.submitButtonText}>
+                  {isResubmitFlow
+                    ? "Resubmit for Review"
+                    : "Submit for Verification"}
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+
+          {isResubmitFlow && (
+            <TouchableOpacity
+              style={styles.cancelButton}
+              onPress={() => {
+                setSelectedDoc(null);
+                setIsResubmitting(false);
+              }}
+            >
+              <Text style={styles.cancelButtonText}>Cancel</Text>
             </TouchableOpacity>
           )}
 
-          {/* Info */}
-          <View style={styles.infoContainer}>
-            <Ionicons name="information-circle" size={20} color="#6B7280" />
-            <Text style={styles.infoText}>
-              Make sure your document is clear and all details are visible
-            </Text>
+          <View style={styles.tipsBox}>
+            <Ionicons
+              name="information-circle-outline"
+              size={18}
+              color="#6B7280"
+            />
+            <View style={styles.tipsContent}>
+              <Text style={styles.tipsTitle}>
+                Tips for a successful submission
+              </Text>
+              <Text style={styles.tipItem}>
+                • Ensure all text is clearly readable
+              </Text>
+              <Text style={styles.tipItem}>
+                • Avoid glare, shadows, or blurring
+              </Text>
+              <Text style={styles.tipItem}>
+                • The entire document must be visible
+              </Text>
+              <Text style={styles.tipItem}>
+                • Images are auto-compressed before upload
+              </Text>
+            </View>
           </View>
         </View>
-      </View>
-    </SafeAreaProvider>
+      </ScrollView>
+    </SafeAreaView>
   );
 };
 
+// ── Styles ───────────────────────────────────────────────────
+
 const styles = StyleSheet.create({
-  container: {
+  safeArea: { flex: 1, backgroundColor: "#F3F4F6" },
+  centered: {
     flex: 1,
-    backgroundColor: "#F9FAFB",
-    padding: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#F3F4F6",
+    gap: 12,
+  },
+  loadingText: { fontSize: 14, color: "#6B7280" },
+  scrollContent: { padding: 20, paddingBottom: 40 },
+  pageTitle: {
+    fontSize: 26,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 20,
+  },
+  statusCard: { borderRadius: 20, padding: 32, alignItems: "center", gap: 12 },
+  statusIconWrap: { marginBottom: 4 },
+  statusTitle: { fontSize: 22, fontWeight: "700" },
+  statusText: {
+    fontSize: 14,
+    color: "#6B7280",
+    textAlign: "center",
+    lineHeight: 22,
+  },
+  resubmitButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#DC2626",
+    paddingVertical: 14,
+    paddingHorizontal: 28,
+    borderRadius: 12,
+    marginTop: 8,
+    gap: 8,
+  },
+  resubmitButtonText: { color: "#FFFFFF", fontSize: 15, fontWeight: "600" },
+  resubmitBanner: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    backgroundColor: "#FEF3C7",
+    borderRadius: 12,
+    padding: 14,
+    gap: 10,
+    marginBottom: 16,
+  },
+  resubmitBannerText: {
+    flex: 1,
+    fontSize: 13,
+    color: "#92400E",
+    lineHeight: 20,
   },
   card: {
     backgroundColor: "#FFFFFF",
@@ -315,40 +649,27 @@ const styles = StyleSheet.create({
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowRadius: 10,
+    elevation: 3,
+    gap: 20,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#111827",
-    marginBottom: 8,
-  },
-  subtitle: {
+  cardTitle: { fontSize: 20, fontWeight: "700", color: "#111827" },
+  cardSubtitle: {
     fontSize: 14,
     color: "#6B7280",
-    marginBottom: 24,
+    marginTop: -12,
+    lineHeight: 20,
   },
-  pickerContainer: {
-    marginBottom: 24,
-  },
-  label: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#374151",
-    marginBottom: 8,
-  },
+  fieldGroup: { gap: 8 },
+  label: { fontSize: 14, fontWeight: "600", color: "#374151" },
   pickerWrapper: {
     borderWidth: 1,
     borderColor: "#D1D5DB",
     borderRadius: 12,
     overflow: "hidden",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#FAFAFA",
   },
-  picker: {
-    height: 50,
-  },
-  // iOS Picker Styles
+  picker: { height: 50 },
   iosPickerButton: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -356,101 +677,104 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#D1D5DB",
     borderRadius: 12,
-    padding: 16,
-    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: "#FAFAFA",
   },
-  iosPickerButtonText: {
-    fontSize: 16,
-    color: "#111827",
-  },
-  previewContainer: {
-    position: "relative",
-    marginBottom: 24,
-    borderRadius: 12,
-    overflow: "hidden",
-  },
-  previewImage: {
-    width: "100%",
-    height: 200,
-    backgroundColor: "#F3F4F6",
-  },
-  removeButton: {
-    position: "absolute",
-    top: 10,
-    right: 10,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 14,
-  },
-  buttonContainer: {
-    gap: 12,
-    marginBottom: 24,
-  },
-  uploadButton: {
+  iosPickerText: { fontSize: 15, color: "#111827" },
+  compressingWrap: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#F3F4F6",
-    padding: 16,
-    borderRadius: 12,
-    gap: 12,
+    paddingVertical: 24,
+    gap: 10,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 14,
+    backgroundColor: "#F9FAFB",
   },
-  uploadButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#111827",
+  compressingText: { fontSize: 14, color: "#6B7280", fontWeight: "500" },
+  uploadRow: {
+    flexDirection: "row",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 14,
+    overflow: "hidden",
+  },
+  uploadOption: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 24,
+    gap: 10,
+    backgroundColor: "#F9FAFB",
+  },
+  uploadDivider: { width: 1, backgroundColor: "#E5E7EB" },
+  uploadIconWrap: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: "#E5E7EB",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  uploadOptionText: { fontSize: 13, fontWeight: "600", color: "#374151" },
+  previewContainer: {
+    borderRadius: 14,
+    overflow: "hidden",
+    height: 220,
+    backgroundColor: "#F3F4F6",
+  },
+  previewImage: { width: "100%", height: "100%" },
+  previewTag: {
+    position: "absolute",
+    bottom: 10,
+    left: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.55)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    gap: 5,
+    maxWidth: "85%",
+  },
+  previewTagText: { color: "#FFFFFF", fontSize: 11 },
+  removeButton: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
   },
   submitButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#111827",
-    padding: 16,
-    borderRadius: 12,
+    paddingVertical: 16,
+    borderRadius: 14,
     gap: 8,
-    marginBottom: 16,
   },
-  submitButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#FFFFFF",
-  },
-  infoContainer: {
+  submitButtonDisabled: { backgroundColor: "#9CA3AF" },
+  submitButtonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "600" },
+  cancelButton: { alignItems: "center", paddingVertical: 12, marginTop: -8 },
+  cancelButtonText: { fontSize: 14, color: "#6B7280", fontWeight: "500" },
+  tipsBox: {
     flexDirection: "row",
     alignItems: "flex-start",
     backgroundColor: "#F9FAFB",
-    padding: 12,
-    borderRadius: 8,
-    gap: 8,
+    borderRadius: 12,
+    padding: 14,
+    gap: 10,
   },
-  infoText: {
-    flex: 1,
-    fontSize: 12,
-    color: "#6B7280",
-    lineHeight: 18,
+  tipsContent: { flex: 1, gap: 4 },
+  tipsTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#374151",
+    marginBottom: 4,
   },
-  statusCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 40,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  statusTitle: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#111827",
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  statusText: {
-    fontSize: 14,
-    color: "#6B7280",
-    textAlign: "center",
-  },
+  tipItem: { fontSize: 12, color: "#6B7280", lineHeight: 20 },
 });
 
 export default KycVerification;

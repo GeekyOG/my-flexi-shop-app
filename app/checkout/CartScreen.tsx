@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 100,
+    paddingBottom: 120,
   },
   loadingContainer: {
     flex: 1,
@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   name: {
-    fontSize: 15,
+    fontSize: 10,
     fontWeight: "700",
     color: "#111827",
   },
@@ -374,13 +374,14 @@ const styles = StyleSheet.create({
   footer: {
     position: "absolute",
     bottom: 0,
+    paddingBottom: 50,
     left: 0,
     right: 0,
     backgroundColor: "#fff",
     padding: 16,
     borderTopWidth: 1,
     borderTopColor: "#E5E7EB",
-    elevation: 8,
+    elevation: 1,
   },
   checkoutButton: {
     backgroundColor: "#FF6B00",

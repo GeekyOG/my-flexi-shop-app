@@ -34,8 +34,6 @@ const Profile = () => {
 
   const profile = profileData?.data;
 
-  console.log(profileData, user);
-
   const stats = [
     { label: "Orders", value: "24" },
     { label: "Wishlist", value: "12" },
@@ -158,9 +156,21 @@ const Profile = () => {
     {
       title: "Orders",
       items: [
-        { icon: "cart", label: "My Orders", action: () => {} },
-        { icon: "refresh", label: "Returns", action: () => {} },
-        { icon: "star", label: "Reviews", action: () => {} },
+        {
+          icon: "cart",
+          label: "My Orders",
+          action: () => {
+            router.push("/(profile)/MyOrdersScreen");
+          },
+        },
+
+        {
+          icon: "star",
+          label: "Reviews",
+          action: () => {
+            router.push("/(profile)/ReviewsScreen");
+          },
+        },
       ],
     },
     {
@@ -194,10 +204,7 @@ const Profile = () => {
         <ProfileCard
           name={user?.name || "Loading..."}
           email={user?.email || ""}
-          avatarUrl={
-            profile?.avatar ||
-            "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&h=200&fit=crop"
-          }
+          avatarUrl={profile?.avatar || "/images/avatar.jpeg"}
           stats={stats}
           onEditProfile={() => setShowProfileModal(true)}
           onAvatarChange={() => {}}

@@ -3,15 +3,13 @@ import type { FetchArgs } from "@reduxjs/toolkit/query/react";
 import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
 import { router } from "expo-router";
 
-const baseUrl = "https://flexi.aoudit.com/api/v1";
-// const baseUrl = "http://localhost:8000/api/v1";
+// const baseUrl = "https://flexi.aoudit.com/api/v1";
+const baseUrl = "http://192.168.1.122:8000/api/v1";
 
 const baseQuery = fetchBaseQuery({
   baseUrl,
   prepareHeaders: (headers, { getState }) => {
     const token = (getState() as any).auth.token;
-
-    console.log(token, "909");
 
     if (token) {
       headers.set("authorization", `Bearer ${token}`);
@@ -20,9 +18,7 @@ const baseQuery = fetchBaseQuery({
   },
   fetchFn: async (input, init?) => {
     try {
-      console.log("📡 Making request to:", input);
       const response = await fetch(input, init);
-      console.log("📩 Response:", response.status, response.ok);
       return response;
     } catch (error) {
       console.error("❌ Network error:", error);
@@ -44,8 +40,6 @@ const baseQueryWithReauth: BaseQueryFn<
     api.dispatch({ type: "auth/logout" });
 
     router.replace("/login");
-
-    console.log("🔒 Unauthorized - redirecting to login");
   }
 
   return result;

@@ -17,6 +17,7 @@ type Props = PropsWithChildren<{
   headerImage?: ReactElement;
   customStyle?: any;
   headerBackgroundColor: { dark: string; light: string };
+  refreshControl?: any;
 }>;
 
 export default function ParallaxScrollView({
@@ -24,11 +25,13 @@ export default function ParallaxScrollView({
   headerImage,
   headerBackgroundColor,
   customStyle,
+  refreshControl,
 }: Props) {
   const colorScheme = useColorScheme() ?? "light";
   const scrollRef = useAnimatedRef<Animated.ScrollView>();
   const scrollOffset = useScrollViewOffset(scrollRef);
   const bottom = useBottomTabOverflow();
+
   const headerAnimatedStyle = useAnimatedStyle(() => {
     return {
       transform: [
@@ -36,14 +39,14 @@ export default function ParallaxScrollView({
           translateY: interpolate(
             scrollOffset.value,
             [-HEADER_HEIGHT, 0, HEADER_HEIGHT],
-            [-HEADER_HEIGHT / 2, 0, HEADER_HEIGHT * 0.75]
+            [-HEADER_HEIGHT / 2, 0, HEADER_HEIGHT * 0.75],
           ),
         },
         {
           scale: interpolate(
             scrollOffset.value,
             [-HEADER_HEIGHT, 0, HEADER_HEIGHT],
-            [2, 1, 1]
+            [2, 1, 1],
           ),
         },
       ],
@@ -57,6 +60,7 @@ export default function ParallaxScrollView({
         scrollEventThrottle={16}
         scrollIndicatorInsets={{ bottom }}
         contentContainerStyle={{ paddingBottom: bottom }}
+        refreshControl={refreshControl}
       >
         {headerImage && (
           <Animated.View
@@ -70,7 +74,7 @@ export default function ParallaxScrollView({
           </Animated.View>
         )}
 
-        <ThemedView style={[styles.content, customStyle ? customStyle : null]}>
+        <ThemedView style={[styles.content, customStyle ?? null]}>
           {children}
         </ThemedView>
       </Animated.ScrollView>

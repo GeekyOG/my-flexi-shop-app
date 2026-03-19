@@ -5,8 +5,8 @@ import HorizontalProductListSection from "@/components/ui/HorizontalProductListS
 import ScrollableProductSection from "@/components/ui/ScrollableProductSection";
 import { Image } from "expo-image";
 
-import { useState } from "react";
-import { FlatList, StyleSheet, Text, View } from "react-native";
+import { useCallback, useState } from "react";
+import { FlatList, RefreshControl, StyleSheet, Text, View } from "react-native";
 import { useGetCategoriesQuery } from "../api/categoriesApi";
 import {
   useGetMostViewedProductsQuery,
@@ -21,7 +21,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   infoBox: {
-    backgroundColor: "#0b4688", // secondary
+    backgroundColor: "#0b4688",
     width: 100,
     borderRadius: 12,
     padding: 12,
@@ -30,11 +30,10 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   infoText: {
-    color: "#fafafa", // neutral-50
+    color: "#fafafa",
     fontSize: 14,
     marginTop: 4,
   },
-
   scrollSections: {
     gap: 16,
   },
@@ -43,18 +42,16 @@ const styles = StyleSheet.create({
 export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [pageSize, setPageSize] = useState(12);
-  // Fetch categories
-  const { data: categoriesData } = useGetCategoriesQuery({
-    page: 1,
-    size: 1000,
-    search: "",
-  });
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Fetch top selling products
-  const { data: topSellingData } = useGetTopSellingProductsQuery(10);
+  const { data: categoriesData, refetch: refetchCategories } =
+    useGetCategoriesQuery({ page: 1, size: 1000, search: "" });
 
-  // Fetch most viewed products
-  const { data: mostViewedData } = useGetMostViewedProductsQuery(10);
+  const { data: topSellingData, refetch: refetchTopSelling } =
+    useGetTopSellingProductsQuery(10);
+
+  const { data: mostViewedData, refetch: refetchMostViewed } =
+    useGetMostViewedProductsQuery(10);
 
   const displayTopSellingProducts = topSellingData?.data || [];
   const displayMostViewedProducts = mostViewedData?.data || [];
@@ -62,15 +59,37 @@ export default function Home() {
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-    setPageSize(12); // Reset page size on search
+    setPageSize(12);
   };
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      await Promise.all([
+        refetchCategories(),
+        refetchTopSelling(),
+        refetchMostViewed(),
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [refetchCategories, refetchTopSelling, refetchMostViewed]);
 
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: "#A1CEDC", dark: "#1D3D47" }}
+      refreshControl={
+        <RefreshControl
+          refreshing={refreshing}
+          onRefresh={onRefresh}
+          tintColor="#0b4688"
+          colors={["#0b4688"]}
+        />
+      }
     >
       <Search onSearch={handleSearch} />
       <Banners />
+
       <View style={styles.row}>
         <View style={styles.infoBox}>
           <Image
@@ -99,37 +118,30 @@ export default function Home() {
       </View>
 
       <View>
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-          }}
-        >
-          <Text style={{ fontSize: 16, fontWeight: 600 }}>Categories</Text>
+        <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
+          <Text style={{ fontSize: 16, fontWeight: "600" }}>Categories</Text>
           <Text style={{ color: "#DB3022" }}>View All</Text>
         </View>
-        <View>
-          <FlatList
-            data={displayCategories}
-            style={{ marginTop: 14 }}
-            horizontal
-            keyExtractor={(item, index) => index.toString()}
-            renderItem={({ item }) => (
-              <View
-                style={{
-                  borderColor: "#e3e3e3",
-                  borderWidth: 1,
-                  marginRight: 12,
-                  borderRadius: 6,
-                  padding: 4,
-                  paddingHorizontal: 12,
-                }}
-              >
-                <Text style={storeStyles.categoryText}>{item.name}</Text>
-              </View>
-            )}
-          />
-        </View>
+        <FlatList
+          data={displayCategories}
+          style={{ marginTop: 14 }}
+          horizontal
+          keyExtractor={(item, index) => index.toString()}
+          renderItem={({ item }) => (
+            <View
+              style={{
+                borderColor: "#e3e3e3",
+                borderWidth: 1,
+                marginRight: 12,
+                borderRadius: 6,
+                padding: 4,
+                paddingHorizontal: 12,
+              }}
+            >
+              <Text style={storeStyles.categoryText}>{item.name}</Text>
+            </View>
+          )}
+        />
       </View>
 
       <View style={styles.scrollSections}>

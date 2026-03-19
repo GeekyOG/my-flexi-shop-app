@@ -22,24 +22,16 @@ const ProfileCard: React.FC<ProfileCardProps> = ({
   return (
     <View style={styles.profileCard}>
       <View style={styles.avatarContainer}>
-        <Image source={{ uri: avatarUrl }} style={styles.avatar} />
-        <TouchableOpacity
-          style={styles.editAvatarButton}
-          onPress={onAvatarChange}
-        >
-          {/* Camera icon can be added here */}
-        </TouchableOpacity>
+        <Image
+          source={require("../../assets/images/avatar.jpg")}
+          style={styles.avatar}
+        />
+
+        {/* <Image source={{ uri: avatarUrl }} style={styles.avatar} /> */}
       </View>
 
       <Text style={styles.profileName}>{name}</Text>
       <Text style={styles.profileEmail}>{email}</Text>
-
-      <TouchableOpacity
-        style={styles.editProfileButton}
-        onPress={onEditProfile}
-      >
-        <Text style={styles.editProfileButtonText}>Edit Profile</Text>
-      </TouchableOpacity>
 
       <View style={styles.statsContainer}>
         {stats.map((stat, index) => (
@@ -82,24 +74,7 @@ const styles = StyleSheet.create({
     borderWidth: 4,
     borderColor: "#F9FAFB",
   },
-  editAvatarButton: {
-    position: "absolute",
-    bottom: 2,
-    right: 2,
-    backgroundColor: "#111827",
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 3,
-    borderColor: "#FFFFFF",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
-  },
+
   profileName: {
     fontSize: 26,
     fontWeight: "700",
